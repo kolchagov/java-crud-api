@@ -33,7 +33,7 @@ public class PostgresqlTest extends Tests {
         USER = "";
         PASS = "";
         DB_NAME = "crudtest";
-        SERVER_NAME = "hadeco.noip.me";
+        SERVER_NAME = "{{server}}";
         SERVER_CLASS = ApiConfig.POSTGRESQL;
     }
 
