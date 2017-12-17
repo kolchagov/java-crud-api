@@ -756,8 +756,10 @@ You can see the api at work at http://localhost:8080/posts/1.
 
 ## Other dependencies
 
-The project uses internally sources from 'fluentsql' project and 'Base64' class from AOSP, 
+The project uses internally sources from 'fluentsql' project and 'Base64' class from AOSP,
+ 
  https://github.com/ivanceras/fluentsql/
+ 
  https://github.com/aosp-mirror/platform_frameworks_base/blob/master/core/java/android/util/Base64.java
  
 Both of them licensed under Apache Public License v2.0. 
