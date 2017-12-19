@@ -17,6 +17,7 @@
 
 package eu.hadeco.crudapi;
 
+import android.util.Base64;
 import com.google.gson.*;
 import com.google.gson.internal.LinkedTreeMap;
 import com.ivanceras.fluent.sql.Breakdown;
@@ -28,7 +29,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-import android.util.Base64;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -1416,11 +1416,10 @@ public class RequestHandler {
             } else {
                 value = validateInput(input, typeMap, key);
             }
-            //todo: check what context is
             value = config.inputSanitizer(action, databaseName, table, key, typeMap.get(key),
-                    value, null);
+                    value, req);
             final Object validatorResult = config.inputValidator(
-                    action, databaseName, table, key, typeMap.get(key), value, null);
+                    action, databaseName, table, key, typeMap.get(key), value, req);
             if (!Boolean.TRUE.equals(validatorResult)) {
                 throw new NumberFormatException((String) validatorResult);
             }

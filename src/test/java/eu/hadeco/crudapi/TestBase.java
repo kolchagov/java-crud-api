@@ -17,19 +17,16 @@
 
 package eu.hadeco.crudapi;
 
-import org.apache.commons.collections.EnumerationUtils;
 import org.junit.AfterClass;
 import org.junit.Assume;
 
+import javax.servlet.http.HttpServletRequest;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Enumeration;
 import java.util.Map;
-import java.util.Properties;
 import java.util.logging.Logger;
 
 import static eu.hadeco.crudapi.CrudApiHandler.TAG_FILTER;
@@ -85,12 +82,12 @@ public abstract class TestBase {
                 }
 
                 @Override
-                protected Object inputSanitizer(RequestHandler.Actions action, String database, String table, String column, String type, Object value, String context) {
+                protected Object inputSanitizer(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
                     return value instanceof String ? TAG_FILTER.matcher(((String) value)).replaceAll("") : value;
                 }
 
                 @Override
-                protected Object inputValidator(RequestHandler.Actions action, String database, String table, String column, String type, Object value, String context) {
+                protected Object inputValidator(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
 //                    ($column=='category_id' && !is_numeric($value))?'must be numeric':true;
                     return "category_id".equals(column) && !(value instanceof Long) ? "must be numeric" : true;
                 }

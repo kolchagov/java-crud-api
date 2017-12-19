@@ -52,12 +52,12 @@ class CrudApiHandler extends AbstractHandler {
             }
 
             @Override
-            protected Object inputSanitizer(RequestHandler.Actions action, String database, String table, String column, String type, Object value, String context) {
+            protected Object inputSanitizer(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
                 return value instanceof String ? TAG_FILTER.matcher(((String) value)).replaceAll("") : value;
             }
 
             @Override
-            protected Object inputValidator(RequestHandler.Actions action, String database, String table, String column, String type, Object value, String context) {
+            protected Object inputValidator(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
 //                    ($column=='category_id' && !is_numeric($value))?'must be numeric':true;
                 return "category_id".equals(column) && !(value instanceof Long) ? "must be numeric" : true;
             }

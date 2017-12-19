@@ -7,3 +7,7 @@ target
 server.jar
 crudtest.db
 unittest.bat
+src/test/java/eu/hadeco/crudapi/PostgresqlTest.java
+src/test/java/eu/hadeco/crudapi/SqliteTest.java
+src/test/java/eu/hadeco/crudapi/SqlServerTest.java
+src/test/java/eu/hadeco/crudapi/MysqlTest.java

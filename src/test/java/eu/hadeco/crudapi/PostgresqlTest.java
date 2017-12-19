@@ -30,10 +30,10 @@ import java.sql.Statement;
 public class PostgresqlTest extends Tests {
     static {
         //configure test parameters here
-        USER = "";
-        PASS = "";
+        USER = "johny";
+        PASS = "johnson";
         DB_NAME = "crudtest";
-        SERVER_NAME = "{{server}}";
+        SERVER_NAME = "hadeco.noip.me";
         SERVER_CLASS = ApiConfig.POSTGRESQL;
     }
 

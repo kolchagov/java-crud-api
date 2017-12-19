@@ -31,10 +31,10 @@ public class MysqlTest extends Tests {
 
     static {
         //configure test parameters here
-        USER = "";
-        PASS = "";
+        USER = "programata";
+        PASS = "parolata";
         DB_NAME = "crudtest";
-        SERVER_NAME = "{{server}}";
+        SERVER_NAME = "hadeco.noip.me";
         SERVER_CLASS = ApiConfig.MYSQL;
     }
 
