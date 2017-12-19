@@ -21,6 +21,7 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import eu.hadeco.crudapi.RequestHandler.Actions;
 
+import javax.servlet.http.HttpServletRequest;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
@@ -234,7 +235,7 @@ public class ApiConfig {
      * @param context
      * @return sanitized value
      */
-    Object inputSanitizer(Actions action, String database, String table, String column, String type, Object value, String context) {
+    Object inputSanitizer(Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
         return value;
     }
 
@@ -251,7 +252,7 @@ public class ApiConfig {
      * @param context
      * @return Boolean.true if value is valid or String to be reported to the client
      */
-    Object inputValidator(Actions action, String database, String table, String column, String type, Object value, String context) {
+    Object inputValidator(Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
         return true;
     }
 

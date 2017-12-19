@@ -18,12 +18,12 @@
 package eu.hadeco.crudapi;
 
 
+import android.util.Base64;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import android.util.Base64;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
