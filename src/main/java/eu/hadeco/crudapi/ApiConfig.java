@@ -60,7 +60,7 @@ public class ApiConfig {
      *
      * @param hikariDatasourceProperties
      */
-    ApiConfig(Properties hikariDatasourceProperties) {
+    public ApiConfig(Properties hikariDatasourceProperties) {
         properties = hikariDatasourceProperties;
         dataSource = new HikariDataSource(new HikariConfig(properties));
     }
@@ -80,7 +80,7 @@ public class ApiConfig {
      * @param serverHostName
      * @param datasourceClassName
      */
-    ApiConfig(String user, String password, String databaseName, String portNumber, String serverHostName, String datasourceClassName) {
+    public  ApiConfig(String user, String password, String databaseName, String portNumber, String serverHostName, String datasourceClassName) {
         properties = new Properties();
         properties.put("dataSource.user", user);
         properties.put("dataSource.password", password);
@@ -102,7 +102,7 @@ public class ApiConfig {
      * @param serverHostName
      * @param datasourceClassName
      */
-    ApiConfig(String user, String password, String databaseName, String serverHostName, String datasourceClassName) {
+    public ApiConfig(String user, String password, String databaseName, String serverHostName, String datasourceClassName) {
         properties = new Properties();
         if (XERIAL.equals(datasourceClassName)) {
             //dataSource props doesn't work with sqlite... why?
