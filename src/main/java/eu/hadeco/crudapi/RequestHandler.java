@@ -14,7 +14,6 @@
  *  https://github.com/ivanceras/fluentsql/blob/master/LICENSE.txt
  *
  */
-
 package eu.hadeco.crudapi;
 
 import android.util.Base64;
@@ -41,8 +40,6 @@ import java.lang.reflect.Type;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import static com.ivanceras.fluent.sql.SQL.Statics.DELETE;
 import static com.ivanceras.fluent.sql.SQL.Statics.*;
@@ -51,9 +48,13 @@ import static eu.hadeco.crudapi.RequestHandler.Actions.CREATE;
 import static eu.hadeco.crudapi.RequestHandler.Actions.DELETE;
 import static eu.hadeco.crudapi.RequestHandler.Actions.*;
 import static eu.hadeco.crudapi.RequestHandler.Actions.UPDATE;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RequestHandler {
-    private static final Logger LOGR = Logger.getLogger(RequestHandler.class.getName());
+
+    private static final Logger LOGR = LoggerFactory.getLogger(RequestHandler.class);
+//            Logger.getLogger(RequestHandler.class.getName());
     private static final String ID_KEY = "!_id_!";
     private static final Gson gson;
 
@@ -99,12 +100,13 @@ public class RequestHandler {
         this.req = req;
         this.config = apiConfig;
         this.databaseName = link.getCatalog();
-        String[] request = req.getPathInfo().replaceAll("/$|^/", "").split("/");
+        final String pathInfo = req.getPathInfo();
+        String[] request = pathInfo == null ? new String[]{""} : pathInfo.replaceAll("/$|^/", "").split("/");
         JsonParser jsonParser = new JsonParser();
         this.root = null;
         // retrieve the table and key from the path
-        String table = request[0].replaceAll("[^a-zA-Z0-9_]+", "");
-        if (table == null || table.isEmpty()) {
+        String tableName = request[0].replaceAll("[^a-zA-Z0-9_]+", "");
+        if (tableName == null || tableName.isEmpty()) {
             throw new ClassNotFoundException("entity");
         }
         isJsonContent = "application/json".equals(req.getContentType());
@@ -120,29 +122,33 @@ public class RequestHandler {
         if (request.length > 1) {
             parameters.put(ID_KEY, request[1].split(","));
         }
-        satisfyAny = parseSatisfy(table);
-        orderMap = parseOrder(table);
+        satisfyAny = parseSatisfy(tableName);
+        orderMap = parseOrder(tableName);
         final String transform = req.getParameter("transform");
         withTransform = transform == null || "1".equals(transform);
-        this.table = table;
+        this.table = tableName;
         this.action = getAction(req.getMethod(), parameters.containsKey(ID_KEY));
-        if (!config.tableAuthorizer(action, databaseName, table)) throw new ClassNotFoundException("entity");
-        this.typeMap = getColumnTypesMap(table);
+        if (!config.tableAuthorizer(action, databaseName, tableName)) {
+            throw new ClassNotFoundException("entity");
+        }
+        this.typeMap = getColumnTypesMap(tableName);
         this.includeTables = applyInclude();
         //add non-prefixed columns to process input
         this.inputTypeMap = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : typeMap.entrySet()) {
-            if (entry.getKey().startsWith(String.format("%s.", table)))
-                inputTypeMap.put(entry.getKey().substring(table.length() + 1), entry.getValue());
+            if (entry.getKey().startsWith(String.format("%s.", tableName))) {
+                inputTypeMap.put(entry.getKey().substring(tableName.length() + 1), entry.getValue());
+            }
         }
-        this.idColumn = getPrimaryKey(table);
+        this.idColumn = getPrimaryKey(tableName);
         columns = parseTableColumns(req);
     }
 
     /**
      * Default servlet handler. Use it to handle servlet requests
-     * @param req   servlet request
-     * @param resp  servlet response to handle
+     *
+     * @param req servlet request
+     * @param resp servlet response to handle
      * @param apiConfig preconfigured ApiConfig class
      * @throws IOException
      */
@@ -173,11 +179,12 @@ public class RequestHandler {
                 resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 final String message = ex.getMessage() == null ? "null" : ex.getMessage();
                 writer.write(message);
-            } catch (SQLException e) {
-                LOGR.log(Level.SEVERE, e.getMessage(), e);
+            } catch (Exception e) {
+                LOGR.error(e.getMessage(), e);
                 resp.setContentType("text/plain");
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                writer.write(String.format("SQL exception: '%s'", e.getMessage()));
+                writer.println(String.format("Internal exception: '%s'", e.getMessage()));
+                e.printStackTrace(writer);
             }
         }
     }
@@ -199,8 +206,9 @@ public class RequestHandler {
         if (satisfyParams != null) {
             for (String satisfyParam : satisfyParams.split(",")) {
                 if (!satisfyParam.contains(".")) {
-                    if (satisfyParam.equals("any"))
+                    if (satisfyParam.equals("any")) {
                         satisfyAny.put(table, "any");
+                    }
                 } else {
                     final String tableName = getTableName(satisfyParam);
                     if ("any".equals(satisfyParam.substring(tableName.length() + 1))) {
@@ -213,13 +221,17 @@ public class RequestHandler {
     }
 
     private Map<String, List<String>> parseOrder(String table) {
-        if (table == null) throw new IllegalStateException("Invalid table name");
+        if (table == null) {
+            throw new IllegalStateException("Invalid table name");
+        }
         Map<String, List<String>> orderMap = new HashMap<>();
         String[] orderParam;
         orderParam = req.getParameterValues("order[]");
         if (orderParam == null) {
             String orderString = req.getParameter("order");
-            if (orderString != null) orderParam = new String[]{orderString};
+            if (orderString != null) {
+                orderParam = new String[]{orderString};
+            }
         }
         if (orderParam != null) {
             for (String order : orderParam) {
@@ -330,12 +342,16 @@ public class RequestHandler {
                     if ("*".equals(colName)) {
                         putColumns(columnsMap, tableName, getColumnTypesMap(tableName).keySet());
                     } else {
-                        if (!typeMap.containsKey(column)) throw new ClassNotFoundException("column");
+                        if (!typeMap.containsKey(column)) {
+                            throw new ClassNotFoundException("column");
+                        }
                         putColumns(columnsMap, tableName, column);
                     }
                 } else {
                     final String fqColumnName = getFullColumnName(this.table, column);
-                    if (!typeMap.containsKey(fqColumnName)) throw new ClassNotFoundException("column");
+                    if (!typeMap.containsKey(fqColumnName)) {
+                        throw new ClassNotFoundException("column");
+                    }
                     putColumns(columnsMap, this.table, fqColumnName);
                 }
             }
@@ -357,10 +373,10 @@ public class RequestHandler {
         }
         //apply columnAuthorizer
         for (String table : columnsMap.keySet()) {
-            for (Iterator<String> iterator = columnsMap.get(table).iterator(); iterator.hasNext(); ) {
+            for (Iterator<String> iterator = columnsMap.get(table).iterator(); iterator.hasNext();) {
                 String column = iterator.next();
-                final boolean isAuthorized =
-                        config.columnAuthorizer(action, databaseName, table, column.substring(table.length() + 1));
+                final boolean isAuthorized
+                        = config.columnAuthorizer(action, databaseName, table, column.substring(table.length() + 1));
                 if (!isAuthorized) {
                     iterator.remove();
                 }
@@ -371,7 +387,9 @@ public class RequestHandler {
 
     private String getTableName(String fqColumnName) {
         final int idx = fqColumnName.lastIndexOf(".");
-        if (idx < 0) throw new IllegalArgumentException("Invalid column name");
+        if (idx < 0) {
+            throw new IllegalArgumentException("Invalid column name");
+        }
         return fqColumnName.substring(0, idx);
     }
 
@@ -403,19 +421,24 @@ public class RequestHandler {
     private List<String> getColumnsList(String table) {
         List<String> columns = new ArrayList<>();
         final Set<String> columnSet = this.columns.get(table);
-        if (columnSet != null) columns.addAll(columnSet);
+        if (columnSet != null) {
+            columns.addAll(columnSet);
+        }
         final String prefix = String.format("%s.", table);
         if (columns.isEmpty()) {
             for (String column : typeMap.keySet()) {
-                if (column.startsWith(prefix))
+                if (column.startsWith(prefix)) {
                     columns.add(column);
+                }
             }
         }
         return columns;
     }
 
     private boolean applyFilters(SQL sql, String table, String... ids) {
-        if (isCreateAction()) return false;
+        if (isCreateAction()) {
+            return false;
+        }
         String[] filters = getFilters(table);
         boolean hasFilters = parseFilters(sql, filters, satisfyAny.containsKey(table));
         if (ids != null && ids.length > 0) {
@@ -443,8 +466,9 @@ public class RequestHandler {
         if (filters != null) {
             for (String filter : filters) {
                 if (filter.contains(".")) {
-                    if (filter.startsWith(prefix))
+                    if (filter.startsWith(prefix)) {
                         result.add(filter);
+                    }
                 } else if (this.table.equals(table)) {
                     result.add(String.format("%s.%s", table, filter));
                 }
@@ -494,7 +518,9 @@ public class RequestHandler {
             }
             pages = pages > 0 ? pages - 1 : 0;
             final boolean msSQL = config.isMsSQL();
-            if (!msSQL) sql.LIMIT(length);
+            if (!msSQL) {
+                sql.LIMIT(length);
+            }
             sql.OFFSET(pages * length);
             if (msSQL) {
                 sql.keyword("ROWS");
@@ -526,7 +552,9 @@ public class RequestHandler {
             ResultSet rs, PrintWriter writer, Collection<String> columns, TableMeta tableMeta,
             Map<String, Set<Object>> collectIds, Map.Entry<String, String> relation) throws SQLException {
         for (String key : tableMeta.getRelatedTableKeys()) {
-            if (!collectIds.containsKey(key)) collectIds.put(key, new HashSet<>());
+            if (!collectIds.containsKey(key)) {
+                collectIds.put(key, new HashSet<>());
+            }
         }
         final LinkedList<Map<String, Object>> records = new LinkedList<>();
         while (rs.next()) {
@@ -534,7 +562,9 @@ public class RequestHandler {
             for (String colName : columns) {
                 Object value = parseValue(colName, rs);
                 row.put(colName.substring(tableMeta.getName().length() + 1), value);
-                if (collectIds.containsKey(colName)) collectIds.get(colName).add(value);
+                if (collectIds.containsKey(colName)) {
+                    collectIds.get(colName).add(value);
+                }
             }
             records.add(row);
         }
@@ -547,13 +577,16 @@ public class RequestHandler {
             if (subRelation != null && collectIds.containsKey(subRelation.getValue())) {
                 ids = collectIds.get(subRelation.getValue());
                 final String key = subRelation.getKey();
-                if (!columnsList.contains(key))
+                if (!columnsList.contains(key)) {
                     columnsList.add(key);
+                }
             } else {
                 ids = new HashSet<>();
             }
             final SQL sql = SELECT(columnsList.toArray(new String[columnsList.size()])).FROM(table);
-            if (!ids.isEmpty() && subRelation != null) sql.WHERE(subRelation.getKey()).IN(ids.toArray());
+            if (!ids.isEmpty() && subRelation != null) {
+                sql.WHERE(subRelation.getKey()).IN(ids.toArray());
+            }
             applyOrder(sql, table);
             try (ResultSet resultSet = prepareStatement(sql).executeQuery()) {
                 LinkedList<Map<String, Object>> relatedRecords = processJsonObjectResults(
@@ -566,7 +599,7 @@ public class RequestHandler {
                         for (Map<String, Object> relatedRecord : relatedRecords) {
                             String left = getShortId(subRelation, tableMeta.getName());
                             final String right = getShortId(subRelation, table);
-                            if (record.get(left) == relatedRecord.get(right)) {
+                            if (Objects.equals(record.get(left), relatedRecord.get(right))) {
                                 filtered.add(relatedRecord);
                             }
                         }
@@ -684,6 +717,7 @@ public class RequestHandler {
                 }
                 break;
             case "FLOAT":
+            case "DOUBLE":
             case "DOUBLE PRECISION":
                 value = rs.getDouble(colName);
                 break;
@@ -731,8 +765,8 @@ public class RequestHandler {
                 String nodeValue = node.getTextContent();
                 if (nodeValue != null) {
                     final Double aDouble = Double.valueOf(nodeValue);
-                    result = aDouble == aDouble.longValue() ?
-                            new JsonPrimitive(aDouble.longValue()) : new JsonPrimitive(aDouble);
+                    result = aDouble == aDouble.longValue()
+                            ? new JsonPrimitive(aDouble.longValue()) : new JsonPrimitive(aDouble);
                 }
                 break;
             case "string":
@@ -769,7 +803,9 @@ public class RequestHandler {
                     } else {
                         statement.setObject(++i, gson.toJson(converted));
                     }
-                } else statement.setObject(++i, converted);
+                } else {
+                    statement.setObject(++i, converted);
+                }
             } else {
                 statement.setNull(++i, Types.BINARY); //ms sql caprice again...
             }
@@ -812,8 +848,9 @@ public class RequestHandler {
         }
         LOGR.info(breakdown.getSql());
         try (ResultSet rs = statement.executeQuery()) {
-            if (rs.next())
+            if (rs.next()) {
                 count = rs.getInt(1);
+            }
         }
         return count;
     }
@@ -996,8 +1033,9 @@ public class RequestHandler {
         if (!parameters.isEmpty() && !isJsonContent) {
 //            process x-www-form-urlencoded data
             for (String key : parameters.keySet()) {
-                if (!key.equals(ID_KEY) && (inputTypeMap.containsKey(key) || key.endsWith("__is_null")))
+                if (!key.equals(ID_KEY) && (inputTypeMap.containsKey(key) || key.endsWith("__is_null"))) {
                     input.put(key, convertToObject(parameters.get(key)[0]));
+                }
             }
         } else if (root != null && root.isJsonObject()) {
 //            process json data - single object
@@ -1008,13 +1046,19 @@ public class RequestHandler {
             List<Map<String, Object>> list = gson.fromJson(root, LinkedList.class);
             final Iterator<Map<String, Object>> it = list.iterator();
             final Iterator<String> idsIterator = ids != null ? Arrays.asList(ids).iterator() : null;
-            if (!it.hasNext()) throw new ClassNotFoundException("input");
-            if (ids != null && ids.length != list.size()) throw new ClassNotFoundException("subject");
+            if (!it.hasNext()) {
+                throw new ClassNotFoundException("input");
+            }
+            if (ids != null && ids.length != list.size()) {
+                throw new ClassNotFoundException("subject");
+            }
             while (it.hasNext()) {
                 action = config.before(action, databaseName, table, ids, input);
                 sql = prepareSql(columnsList);
                 final Map<String, Object> next = it.next();
-                if (next.isEmpty()) throw new ClassNotFoundException("input");
+                if (next.isEmpty()) {
+                    throw new ClassNotFoundException("input");
+                }
                 parseInput(sql, next, inputTypeMap);
                 final String id = idsIterator != null && idsIterator.hasNext() ? idsIterator.next() : null;
                 applyFilters(sql, table, id);
@@ -1027,7 +1071,9 @@ public class RequestHandler {
         } else {
             if (batch.isEmpty()) {
                 try {
-                    if (ids == null) ids = new String[]{null};
+                    if (ids == null) {
+                        ids = new String[]{null};
+                    }
                     for (String id : ids) {
                         sql = prepareSql(columnsList);
                         parseInput(sql, input, inputTypeMap);
@@ -1136,17 +1182,17 @@ public class RequestHandler {
     }
 
     /**
-     * Searches for relations between tables and removes related from include list.
-     * Feeds collectIds with exported primary keys
+     * Searches for relations between tables and removes related from include
+     * list. Feeds collectIds with exported primary keys
      *
-     * @param tableMeta  table columns metadata map
+     * @param tableMeta table columns metadata map
      * @param collectIds map with sets of collected ids
      * @throws SQLException
      */
     private void findTableRelations(Map<String, TableMeta> tableMeta, Map<String, Set<Object>> collectIds)
             throws ClassNotFoundException {
         if (!includeTables.isEmpty()) {
-            for (Iterator<String> iterator = includeTables.iterator(); iterator.hasNext(); ) {
+            for (Iterator<String> iterator = includeTables.iterator(); iterator.hasNext();) {
                 String includeTable = iterator.next();
                 TableMeta cTable = tableMeta.get(includeTable);
                 TableMeta topTable = tableMeta.get(table);
@@ -1169,8 +1215,9 @@ public class RequestHandler {
                                     final String imTable = ft.getName();
                                     typeMap.putAll(getColumnTypesMap(imTable));
                                     tableMeta.get(leftTable).addReferencedTable(ft);
-                                    if (leftTable.equals(includeTable) || rightTable.equals(includeTable))
+                                    if (leftTable.equals(includeTable) || rightTable.equals(includeTable)) {
                                         iterator.remove();
+                                    }
                                     ft.addReferencedTable(tableMeta.get(includeTable));
                                     for (String idKey : ft.getForeignKeys()) {
                                         collectIds.put(idKey, new HashSet<>());
@@ -1194,12 +1241,13 @@ public class RequestHandler {
             Map.Entry<String, String> relation = mt.getRelation();
             if (relation != null && collectIds.containsKey(relation.getValue())) {
                 final String collectedIds = relation.getValue();
-                if (!collectedIds.isEmpty())
+                if (!collectedIds.isEmpty()) {
                     if (hasFilters) {
                         sql.AND(relation.getKey()).IN(collectIds.get(collectedIds).toArray());
                     } else {
                         sql.WHERE(relation.getKey()).IN(collectIds.get(collectedIds).toArray());
                     }
+                }
             }
             applyOrder(sql, table);
             try (ResultSet resultSet = prepareStatement(sql).executeQuery()) {
@@ -1211,7 +1259,7 @@ public class RequestHandler {
     }
 
     private void streamRecords(PrintWriter writer, List<String> columnsList, Map<String, Set<Object>> collectIds,
-                               ResultSet rs, Integer resultCount, TableMeta tableMeta) throws SQLException {
+            ResultSet rs, Integer resultCount, TableMeta tableMeta) throws SQLException {
         String relations = tableMeta.getRelationsJson();
         writer.write(String.format("\"%s\":{%s\"columns\":%s,\"records\":[", tableMeta.getName(),
                 relations,
@@ -1240,14 +1288,17 @@ public class RequestHandler {
     }
 
     /**
-     * Returns map that contains metadata about every table's primary and foreign keys
+     * Returns map that contains metadata about every table's primary and
+     * foreign keys
      *
      * @return
      * @throws SQLException
      */
     private Map<String, TableMeta> getTableMetaMap() throws SQLException {
         Map<String, TableMeta> tablesMap = ApiConfig.getCachedTableMeta();
-        if (tablesMap != null) return tablesMap;
+        if (tablesMap != null) {
+            return tablesMap;
+        }
         tablesMap = new HashMap<>();
         DatabaseMetaData md;
         md = link.getMetaData();
@@ -1329,10 +1380,11 @@ public class RequestHandler {
             final String column = columnsList.get(i);
             if (isGeometryObject(column)) {
                 //
-                if (config.isMsSQL())
+                if (config.isMsSQL()) {
                     result[i] = String.format("%s.STAsText() as %s", column, column.replace(".", "_"));
-                else
+                } else {
                     result[i] = String.format("ST_asText(%s) as %s", column, column.replace(".", "_"));
+                }
 
             } else {
                 result[i] = column;
@@ -1352,7 +1404,9 @@ public class RequestHandler {
     }
 
     private void parseInput(SQL sql, Map<String, Object> input, Map<String, String> typeMap) {
-        if (!(isCreateAction() || action == UPDATE || action == INCREMENT)) return;
+        if (!(isCreateAction() || action == UPDATE || action == INCREMENT)) {
+            return;
+        }
         //apply tenancy function
         for (String column : input.keySet()) {
             final Object tenancyValue = config.tenancyFunction(action, databaseName, table, column);
@@ -1386,7 +1440,9 @@ public class RequestHandler {
                 } else {
                     sql.FIELD(entry.getKey()).EQUAL(entry.getValue());
                 }
-                if (it.hasNext()) sql.comma();
+                if (it.hasNext()) {
+                    sql.comma();
+                }
             }
         }
     }
@@ -1427,10 +1483,11 @@ public class RequestHandler {
             if (isTimeColumn(key, typeMap) && config.isPSQL()) {
                 final String strValue = (String) value;
                 try {
-                    if (strValue.matches("\\d{4}-\\d\\d-\\d\\d"))
+                    if (strValue.matches("\\d{4}-\\d\\d-\\d\\d")) {
                         value = Date.valueOf(strValue);
-                    else
+                    } else {
                         value = Timestamp.valueOf(strValue);
+                    }
                 } catch (IllegalArgumentException ignored) {
                     throw new IllegalArgumentException("date argument is invalid");
                 }
@@ -1443,7 +1500,7 @@ public class RequestHandler {
     private Object validateInput(Map<String, Object> input, Map<String, String> typeMap, String key) {
         Object result = input.get(key);
         final boolean isString = result instanceof String;
-        if (result != null)
+        if (result != null) {
             if (isBinaryColumn(key, typeMap)) {
                 result = Base64.decode(result.toString(), Base64.DEFAULT);
             } else if (isNumericColumn(key, typeMap)) {
@@ -1455,6 +1512,7 @@ public class RequestHandler {
                     result = fixNumeric(result);
                 }
             }
+        }
         return result;
     }
 
@@ -1511,6 +1569,5 @@ public class RequestHandler {
     enum Actions {
         LIST, CREATE, READ, UPDATE, DELETE, INCREMENT, HEADERS
     }
-
 
 }

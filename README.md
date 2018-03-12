@@ -63,7 +63,7 @@ Output:
 {"categories":[{"id":1,"name":"Internet"},{"id":3,"name":"Web development"}]}
 ```
 
-NB: This transform is CPU and memory intensive and can also be executed client-side (see: [lib](https://github.com/mevdschee/php-crud-api/tree/master/lib)).
+NB: This transform is not as CPU and memory intensive as in php-crud-api (java API streams json objects very effectively), but it can also be executed client-side (see: [lib](https://github.com/mevdschee/php-crud-api/tree/master/lib)).
 
 ## List + Filter
 
