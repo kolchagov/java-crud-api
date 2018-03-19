@@ -653,8 +653,8 @@ public class RequestHandler {
      * @param type
      * @return
      */
-    private boolean isSignedType(String type){
-        return type.toUpperCase().endsWith("SIGNED");
+    private boolean isUnsignedType(String type){
+        return type.toUpperCase().endsWith(" UNSIGNED");
     }
 
     private Object parseValue(String fullName, ResultSet rs) throws SQLException {
@@ -671,7 +671,7 @@ public class RequestHandler {
             type = BINARY;
         } else if (isTimeColumn(fullName, typeMap)) {
             type = TIME;
-        } else if( isSignedType(type) ) {
+        } else if( isUnsignedType(type) ) {
             type = type.split(" ")[0];
         }
 
