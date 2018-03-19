@@ -698,6 +698,7 @@ public class RequestHandler {
                 break;
             case "TINYINT":
             case "SMALLINT":
+            case "SMALLINT UNSIGNED":
             case "INTEGER":
             case "INT":
             case "INT4":
