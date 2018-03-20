@@ -647,6 +647,16 @@ public class RequestHandler {
         }
     }
 
+    /**
+     * SMALLINT SIGNED
+     * INT UNSIGNED
+     * @param type
+     * @return
+     */
+    private boolean isUnsignedType(String type){
+        return type.toUpperCase().endsWith(" UNSIGNED");
+    }
+
     private Object parseValue(String fullName, ResultSet rs) throws SQLException {
         Object value;
         final String BINARY = "_binary_", TIME = "_time_";
@@ -656,14 +666,15 @@ public class RequestHandler {
         } catch (SQLException ignored) {
             colName = fullName;
         }
-        final String type;
+        String type = typeMap.get(fullName);
         if (isBinaryColumn(fullName, typeMap)) {
             type = BINARY;
         } else if (isTimeColumn(fullName, typeMap)) {
             type = TIME;
-        } else {
-            type = typeMap.get(fullName).toUpperCase();
+        } else if( isUnsignedType(type) ) {
+            type = type.split(" ")[0];
         }
+
         switch (type) {
             case "GEOMETRY":         //this type is included in tests as ST_AsText(value)
                 value = rs.getString(colName.replace(".", "_"));
