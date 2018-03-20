@@ -666,8 +666,8 @@ public class RequestHandler {
         } catch (SQLException ignored) {
             colName = fullName;
         }
-        //POSTGRES JDBC driver returns lower-cased types
         String type = typeMap.get(fullName).toUpperCase();
+        //POSTGRES JDBC driver returns lower-cased types
         if (isBinaryColumn(fullName, typeMap)) {
             type = BINARY;
         } else if (isTimeColumn(fullName, typeMap)) {
@@ -696,6 +696,7 @@ public class RequestHandler {
             case "CHARACTER":
             case "TEXT":
             case "VARCHAR":
+            case "VARCHAR2":
             case "NVARCHAR":
             case "LONGVARCHAR":
             case "DECIMAL":         //this type is included as string in tests
@@ -731,6 +732,7 @@ public class RequestHandler {
             case "FLOAT":
             case "DOUBLE":
             case "DOUBLE PRECISION":
+            case "NUMBER":
                 value = rs.getDouble(colName);
                 break;
             case BINARY:
