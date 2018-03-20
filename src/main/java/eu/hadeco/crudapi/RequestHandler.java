@@ -666,7 +666,8 @@ public class RequestHandler {
         } catch (SQLException ignored) {
             colName = fullName;
         }
-        String type = typeMap.get(fullName);
+        //POSTGRES JDBC driver returns lower-cased types
+        String type = typeMap.get(fullName).toUpperCase();
         if (isBinaryColumn(fullName, typeMap)) {
             type = BINARY;
         } else if (isTimeColumn(fullName, typeMap)) {
