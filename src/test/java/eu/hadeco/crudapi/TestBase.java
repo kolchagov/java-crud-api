@@ -136,6 +136,7 @@ public abstract class TestBase {
             String line = reader.readLine().trim();
             //skip comments
             if(line.equals("GO")) break;
+            if(line.startsWith("/")) break;
             if (line.startsWith("--")) { //NOI18N
                 break;
             }

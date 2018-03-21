@@ -20,22 +20,24 @@ package eu.hadeco.crudapi;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static eu.hadeco.crudapi.ApiConfig.XERIAL;
+import static eu.hadeco.crudapi.ApiConfig.MYSQL;
+import static eu.hadeco.crudapi.ApiConfig.ORACLE;
 
 class CrudApiHandler extends AbstractHandler {
     static final Pattern TAG_FILTER = Pattern.compile("(<script>|</script>)");
     private final ApiConfig apiConfig;
 
-    private CrudApiHandler() throws IOException {
+    private CrudApiHandler() {
         //this is configuration example from tests!
-        apiConfig = new ApiConfig("root","root", "crudtest.db", "localhost", XERIAL) {
+//        apiConfig = new ApiConfig("root","root", "crudtest.db", "localhost", XERIAL) {
+//        apiConfig = new ApiConfig("root","root", "sakila", "localhost", MYSQL) {
+            apiConfig = new ApiConfig("sanity","sanity", "sanity", "localhost", ORACLE) {
             @Override
             protected boolean columnAuthorizer(RequestHandler.Actions action, String database, String table, String column) {
                 return !("password".equals(column) && RequestHandler.Actions.LIST.equals(action));
@@ -95,7 +97,7 @@ class CrudApiHandler extends AbstractHandler {
 
     @Override
     public void handle(String target, Request baseReq, HttpServletRequest req, HttpServletResponse resp)
-            throws IOException, ServletException {
+            throws IOException {
         RequestHandler.handle(req, resp, apiConfig);
         baseReq.setHandled(true);
     }
