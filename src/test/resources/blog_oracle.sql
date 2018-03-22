@@ -197,16 +197,9 @@ CREATE OR REPLACE TRIGGER countries_autoinc
   END;
 /
 
-create or replace function ST_GeomFromText(p_shape VARCHAR) return sdo_geometry
-is
-  BEGIN
-    return SDO_GEOMETRY(2003, NULL, NULL, SDO_ELEM_INFO_ARRAY(1, 1003, 1), SDO_ORDINATE_ARRAY(5, 1, 8, 1, 8, 6, 5, 7, 5, 1));
-  END;
+INSERT INTO countries (id, name, shape) VALUES (1,  'Left', SDO_GEOMETRY('POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))'))
 /
-
-INSERT INTO countries (id, name, shape) VALUES (1,  'Left', ST_GeomFromText('POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))'))
-/
-INSERT INTO countries (id, name, shape) VALUES (2,  'Right',  ST_GeomFromText('POLYGON ((70 10, 80 40, 60 40, 50 20, 70 10))'))
+INSERT INTO countries (id, name, shape) VALUES (2,  'Right',  SDO_GEOMETRY('POLYGON ((70 10, 80 40, 60 40, 50 20, 70 10))'))
 /
 
 
@@ -265,8 +258,7 @@ CREATE OR REPLACE TRIGGER products_autoinc
   END;
 /
 
-INSERT INTO products (id, name, price, properties, created_at) VALUES
-  (1, 'Calculator', '23.01', '{"depth":false,"model":"TRX-120","width":100,"height":null}', '1970-01-01 01:01:01')
+INSERT INTO products (id, name, price, properties, created_at) VALUES (1, 'Calculator', '23.01', '{"depth":false,"model":"TRX-120","width":100,"height":null}', '1970-01-01 01:01:01')
 /
 
 
