@@ -65,6 +65,7 @@
             <artifactId>xom</artifactId>
             <version>1.0b3</version>
         </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.springframework/spring-jdbc -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -80,15 +81,16 @@
             <artifactId>mysql-connector-java</artifactId>
             <version>${mysql.version}</version>
             <!--<scope>test</scope>-->
-            <scope>test</scope>
         </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>9.3-1100-jdbc41</version>
+            <version>42.2.2.jre7</version>
             <scope>test</scope>
         </dependency>
+
 
         <!-- https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
         <dependency>
@@ -104,14 +106,6 @@
             <version>6.2.0.jre7</version>
             <!--Remove this scope if you paln to use MS SQL in production-->
             <scope>test</scope>
-        </dependency>
-
-        <!-- https://blogs.oracle.com/dev2dev/get-oracle-jdbc-drivers-and-ucp-from-oracle-maven-repository-without-ides -->
-        <!-- https://docs.oracle.com/middleware/1213/core/MAVEN/config_maven_repo.htm#MAVEN9017 -->
-        <dependency>
-            <groupId>com.oracle.jdbc</groupId>
-            <artifactId>ojdbc8_g</artifactId>
-            <version>12.2.0.1</version>
         </dependency>
 
         <dependency>
@@ -144,6 +138,22 @@
             <version>4.11</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/oracle/ojdbc5 -->
+
+        <!-- Install Local Dependency -->
+        <!--
+        wget https://devtools.jahia.com/nexus/content/groups/maven-jahia-org/com/oracle/ojdbc5/11.2.0.2.0/ojdbc5-11.2.0.2.0.jar
+        mvn install:install-file -Dfile=ojdbc5-11.2.0.2.0.jar -DgroupId=com.oracle \
+        -DartifactId=ojdbc5 -Dversion=11.2.0.2.0 -Dpackaging=jar -DgeneratePom=true
+        -->
+        <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>ojdbc5</artifactId>
+            <version>11.2.0.2.0</version>
+        </dependency>
+
+
     </dependencies>
     <build>
         <plugins>
@@ -180,25 +190,5 @@
             </plugin>
         </plugins>
     </build>
-
-    <repositories>
-        <repository>
-            <id>maven.oracle.com</id>
-            <releases>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <url>https://maven.oracle.com</url>
-            <layout>default</layout>
-        </repository>
-    </repositories>
-    <pluginRepositories>
-        <pluginRepository>
-            <id>maven.oracle.com</id>
-            <url>https://maven.oracle.com</url>
-        </pluginRepository>
-    </pluginRepositories>
-
 
 </project>

@@ -124,7 +124,7 @@ public class ApiConfig {
         }
         if (ORACLE.equals(datasourceClassName)) {
             properties.remove("dataSourceClassName");
-            properties.setProperty("DriverClassName","oracle.jdbc.driver.OracleDriver");
+            properties.setProperty("DriverClassName","oracle.jdbc.OracleDriver");
             String jdbcUrl = String.format("jdbc:oracle:thin:@%s:%d:%s", serverHostName, 1521, databaseName);
             properties.setProperty("jdbcUrl", jdbcUrl );
         }
@@ -282,7 +282,7 @@ public class ApiConfig {
     }
 
     public boolean isOracle() {
-        return ORACLE.equals(properties.get("dataSourceClassName")) || properties.getProperty("jdbcUrl").startsWith("jdbc:oracle");
+        return ORACLE.equals(properties.get("dataSourceClassName")) || properties.getProperty("jdbcUrl","").startsWith("jdbc:oracle");
     }
 
     public boolean isPSQL() {

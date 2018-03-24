@@ -23,6 +23,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -33,7 +34,7 @@ public class OracleTest extends Tests {
         //configure test parameters here
         USER = "crudtest";
         PASS = "crudtest";
-        DB_NAME = "sanity";
+        DB_NAME = "xe";
         SERVER_NAME = "localhost";
         SERVER_CLASS = ApiConfig.ORACLE;
     }
@@ -64,8 +65,8 @@ public class OracleTest extends Tests {
     @Override
     public int getCapabilities(Connection link) {
         int capabilities = 0;
-        capabilities = capabilities | GIS;
-        capabilities = capabilities | JSON;
+//        capabilities = capabilities | GIS;
+//        capabilities = capabilities | JSON;
         /*
         try {
             final String databaseProductVersion = link.getMetaData().getDatabaseProductVersion();
@@ -103,9 +104,6 @@ public class OracleTest extends Tests {
             String line = reader.readLine().trim();
             //skip comments
             if(line.startsWith("/")) break;
-            if (line.startsWith("--")) { //NOI18N
-                break;
-            }
             if(!line.isEmpty())
                 sb.append(line).append(' ');
         }
@@ -130,7 +128,14 @@ public class OracleTest extends Tests {
                 }
                 */
                 try {
-                    stmt.addBatch(line);
+
+                    if( isPLSQLBlock(line) ){
+                        CallableStatement cstmt = conn.prepareCall(line);
+                        cstmt.execute();
+                    }else {
+                        stmt.addBatch(line);
+                    }
+
                 } catch (SQLException ex) {
                     System.out.println("error line: " + line);
                     throw ex;
@@ -140,4 +145,10 @@ public class OracleTest extends Tests {
         executeBatch(conn, stmt);
         conn.setAutoCommit(true);
     }
+
+    private boolean isPLSQLBlock(String psql){
+        psql = psql.toUpperCase();
+        return psql.startsWith("DECLARE") || psql.startsWith("BEGIN");
+    }
+
 }
