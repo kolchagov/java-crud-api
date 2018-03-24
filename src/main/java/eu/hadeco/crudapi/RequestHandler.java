@@ -1020,6 +1020,7 @@ public class RequestHandler {
 
     private String getGeometryFromText(String command, String column, String value) {
         final boolean msSQL = config.isMsSQL();
+        final boolean oracle = config.isOracle();
         String filter;
         switch (command) {
             case "swi":
@@ -1049,7 +1050,14 @@ public class RequestHandler {
             default:
                 throw new IllegalArgumentException("Command not implemented: " + command);
         }
-        String valueFormat = msSQL ? "geometry::STGeomFromText('%s',0)" : "ST_GeomFromText('%s')";
+
+        String valueFormat = "ST_GeomFromText('%s')";
+
+        if(msSQL)
+            valueFormat = "geometry::STGeomFromText('%s',0)";
+        if(oracle)
+            valueFormat = "%s";
+
         final String valueCmd = String.format(valueFormat, value);
         return String.format(filter, column, valueCmd);
     }
@@ -1081,7 +1089,6 @@ public class RequestHandler {
     private void handleRequest(PrintWriter writer) throws SQLException, ClassNotFoundException {
         final List<String> columnsList = getColumnsList(table);
         String[] ids = parameters.get(ID_KEY);
-//        Map<String, Object> input = new LinkedHashMap<>();
         Map<String,Object> input = new  LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
         List<SQL> batch = new ArrayList<>();
         SQL sql = null;
@@ -1511,7 +1518,9 @@ public class RequestHandler {
                     if (config.isMsSQL()) {
                         sql.FIELD(entry.getKey()).EQUAL().keyword("geometry::STGeomFromText")
                                 .openParen().VALUE(entry.getValue()).comma().VALUE(0).closeParen();
-                    } else {
+                    } /*else if (config.isOracle()){
+                        sql.FIELD(entry.getKey()).EQUAL().VALUE(entry.getValue());
+                    }*/ else {
                         sql.FIELD(entry.getKey()).EQUAL().keyword("ST_GeomFromText").openParen().VALUE(entry.getValue()).closeParen();
                     }
                 } else {
@@ -1558,7 +1567,7 @@ public class RequestHandler {
                 throw new NumberFormatException((String) validatorResult);
             }
             //special case: Postgres
-            if (isTimeColumn(key, typeMap) && config.isPSQL()) {
+            if (isTimeColumn(key, typeMap) && (config.isPSQL() || config.isOracle()) ) {
                 final String strValue = (String) value;
                 try {
                     if (strValue.matches("\\d{4}-\\d\\d-\\d\\d")) {

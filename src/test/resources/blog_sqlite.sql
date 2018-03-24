@@ -105,7 +105,7 @@ DROP TABLE IF EXISTS `products`;
 CREATE TABLE `products` (
   `id` integer NOT NULL PRIMARY KEY AUTOINCREMENT,
   `name` text(255) NOT NULL,
-  `price` text(12) NOT NULL,
+  `price` float NOT NULL,
   `properties` json NOT NULL,
   `created_at` datetime NOT NULL,
   `deleted_at` datetime NULL
