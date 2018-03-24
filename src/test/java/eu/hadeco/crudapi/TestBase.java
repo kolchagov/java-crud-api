@@ -89,7 +89,9 @@ public abstract class TestBase {
                 @Override
                 protected Object inputValidator(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
 //                    ($column=='category_id' && !is_numeric($value))?'must be numeric':true;
-                    return "category_id".equals(column) && !(value instanceof Long) ? "must be numeric" : true;
+//                    return "category_id".equals(column) && !(value instanceof Long) ? "must be numeric" : true;
+                    boolean invalid = "category_id".equals(column) && !isNumeric(value);
+                    return invalid ? "must be numeric" : true;
                 }
 
                 @Override
@@ -106,6 +108,10 @@ public abstract class TestBase {
                 }
             };
         }
+    }
+
+    private static boolean isNumeric(Object value){
+        return (value instanceof Long || value instanceof Double);
     }
 
     private static boolean hasEmptyConfigurationParameters(String... parameters) {
@@ -136,6 +142,7 @@ public abstract class TestBase {
             String line = reader.readLine().trim();
             //skip comments
             if(line.equals("GO")) break;
+            if(line.startsWith("/")) break;
             if (line.startsWith("--")) { //NOI18N
                 break;
             }

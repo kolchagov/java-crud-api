@@ -33,6 +33,7 @@ import java.sql.Connection;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 public class TestApi {
@@ -67,9 +68,9 @@ public class TestApi {
                 assertEquals("expected ok response, got: " + actual, isOkResponse, resp.getStatus() < 400);
                 if (expected != null) {
                     if (isOkResponse) {
-                        JsonAssert.assertJsonEquals(expected, actual);
+                        JsonAssert.assertJsonEquals(expected.toLowerCase(), actual.toLowerCase());
                     } else {
-                        assertEquals(expected, actual);
+                        assertEquals( expected.toLowerCase(), actual.toLowerCase() );
                     }
                 }
             }

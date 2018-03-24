@@ -20,24 +20,23 @@ package eu.hadeco.crudapi;
 import org.eclipse.jetty.server.*;
 import org.eclipse.jetty.server.handler.AbstractHandler;
 
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import static eu.hadeco.crudapi.ApiConfig.MYSQL;
-import static eu.hadeco.crudapi.ApiConfig.ORACLE;
 import static eu.hadeco.crudapi.ApiConfig.XERIAL;
 
 class CrudApiHandler extends AbstractHandler {
     static final Pattern TAG_FILTER = Pattern.compile("(<script>|</script>)");
     private final ApiConfig apiConfig;
 
-    private CrudApiHandler() throws IOException {
+    private CrudApiHandler() {
         //this is configuration example from tests!
         apiConfig = new ApiConfig("root","root", "crudtest.db", "localhost", XERIAL) {
+//        apiConfig = new ApiConfig("root","root", "sakila", "localhost", MYSQL) {
+//            apiConfig = new ApiConfig("crudtest","crudtest", "xe", "localhost", ORACLE) {
             @Override
             protected boolean columnAuthorizer(RequestHandler.Actions action, String database, String table, String column) {
                 return !("password".equals(column) && RequestHandler.Actions.LIST.equals(action));
@@ -61,7 +60,7 @@ class CrudApiHandler extends AbstractHandler {
             @Override
             protected Object inputValidator(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
 //                    ($column=='category_id' && !is_numeric($value))?'must be numeric':true;
-                return "category_id".equals(column) && !(value instanceof Long) ? "must be numeric" : true;
+                return "category_id".equals(column) && ! isNumeric(value) ? "must be numeric" : true;
             }
 
             @Override
@@ -100,6 +99,11 @@ class CrudApiHandler extends AbstractHandler {
             throws IOException {
         RequestHandler.handle(req, resp, apiConfig);
         baseReq.setHandled(true);
+    }
+
+
+    private static boolean isNumeric(Object value){
+        return (value instanceof Long || value instanceof Double);
     }
 
 }
