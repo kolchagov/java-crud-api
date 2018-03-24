@@ -27,6 +27,8 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static eu.hadeco.crudapi.ApiConfig.MYSQL;
+import static eu.hadeco.crudapi.ApiConfig.ORACLE;
 import static eu.hadeco.crudapi.ApiConfig.XERIAL;
 
 class CrudApiHandler extends AbstractHandler {
@@ -95,7 +97,7 @@ class CrudApiHandler extends AbstractHandler {
 
     @Override
     public void handle(String target, Request baseReq, HttpServletRequest req, HttpServletResponse resp)
-            throws IOException, ServletException {
+            throws IOException {
         RequestHandler.handle(req, resp, apiConfig);
         baseReq.setHandled(true);
     }
