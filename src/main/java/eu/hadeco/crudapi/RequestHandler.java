@@ -505,17 +505,10 @@ public class RequestHandler {
         return action == LIST || action == READ;
     }
 
-    private Integer applyPaging(SQL sql) throws SQLException {
+    private Map applyPaging(SQL sql) throws SQLException {
+        Map map = new HashMap<>();
+        map.put("sql", sql);
         String pageParam = req.getParameter("page");
-
-        //        String order = req.getParameter("order");
-//        String[] orders = order != null ? new String[]{order} : parameters.get("order[]");
-//        if (orders != null) {
-//            for (int i = 0; i < orders.length; i++) {
-//                orders[i] = orders[i].replace(",", " ");
-//            }
-//            sql.ORDER_BY(orders);
-//        }
         final List<String> orders = applyOrder(sql, table);
         Integer resultCount = null;
         if (pageParam != null) {
@@ -523,6 +516,7 @@ public class RequestHandler {
                 throw new IllegalStateException("'page' without 'order' is not possible!");
             }
             resultCount = getResultCount(link, orders.get(0), table);
+            map.put("resultCount", resultCount);
             String[] split = pageParam.split(",");
             int pages = Integer.valueOf(split[0]);
             int length = 20;
@@ -530,19 +524,33 @@ public class RequestHandler {
                 length = Integer.valueOf(split[1]);
             }
             pages = pages > 0 ? pages - 1 : 0;
+            int limit = length;
+            int offset = pages * length;
             final boolean msSQL = config.isMsSQL();
-            if (!msSQL && !config.isOracle()) {
-                sql.LIMIT(length);
+            final boolean oracle = config.isOracle();
+            if (!msSQL && !oracle) {
+                sql.LIMIT(limit);
             }
-            if(!config.isOracle()) {
-                sql.OFFSET(pages * length);
+            if(!oracle) {
+                sql.OFFSET(offset);
             }
             if (msSQL) {
                 sql.keyword("ROWS");
-                sql.keyword(String.format("FETCH NEXT %d ROWS ONLY", length));
+                sql.keyword(String.format("FETCH NEXT %d ROWS ONLY", limit));
+            }
+
+            if(oracle){
+                SQL sqlRowNum = SELECT("rownum as rownumid", "t.*")
+                        .FROM(sql).keyword("t");
+
+                SQL sqlFilter = SELECT("*").FROM(sqlRowNum);
+                int begin = offset+1;
+                int end = limit + offset;
+                sqlFilter.keyword(String.format("WHERE rownumid BETWEEN %d AND %d",begin,end));
+                map.put("sql", sqlFilter);
             }
         }
-        return resultCount;
+        return map;
     }
 
     private List<String> applyOrder(SQL sql, String table) {
@@ -1192,7 +1200,9 @@ public class RequestHandler {
         boolean hasFilters = applyFilters(sql, table, ids);
         Integer resultCount = null;
         if (action == LIST) {
-            resultCount = applyPaging(sql);
+            Map map = applyPaging(sql);
+            resultCount = (Integer)map.get("resultCount");
+            sql = (SQL)map.get("sql");
         }
         applyTenancyFilter(hasFilters, sql);
         final List<String> columnList = getColumnsList(table);

@@ -39,17 +39,17 @@ class CrudApiHandler extends AbstractHandler {
 //            apiConfig = new ApiConfig("crudtest","crudtest", "xe", "localhost", ORACLE) {
             @Override
             protected boolean columnAuthorizer(RequestHandler.Actions action, String database, String table, String column) {
-                return !("password".equals(column) && RequestHandler.Actions.LIST.equals(action));
+                return !("password".equalsIgnoreCase(column) && RequestHandler.Actions.LIST.equals(action));
             }
 
             @Override
             protected String[] recordFilter(RequestHandler.Actions action, String database, String table) {
-                return "posts".equals(table) ? new String[]{"id,neq,13"} : null;
+                return "posts".equalsIgnoreCase(table) ? new String[]{"id,neq,13"} : null;
             }
 
             @Override
             protected Object tenancyFunction(RequestHandler.Actions action, String database, String table, String column) {
-                return "users".equals(table) && "id".equals(column) ? 1 : null;
+                return "users".equalsIgnoreCase(table) && "id".equalsIgnoreCase(column) ? 1 : null;
             }
 
             @Override
@@ -60,12 +60,12 @@ class CrudApiHandler extends AbstractHandler {
             @Override
             protected Object inputValidator(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
 //                    ($column=='category_id' && !is_numeric($value))?'must be numeric':true;
-                return "category_id".equals(column) && ! isNumeric(value) ? "must be numeric" : true;
+                return "category_id".equalsIgnoreCase(column) && ! isNumeric(value) ? "must be numeric" : true;
             }
 
             @Override
             protected RequestHandler.Actions before(RequestHandler.Actions action, String database, String table, String[] ids, Map<String, Object> input) {
-                if ("products".equals(table)) {
+                if ("products".equalsIgnoreCase(table)) {
                     if (action == RequestHandler.Actions.CREATE) {
                         input.put("created_at", "2013-12-11 10:09:08");
                     } else if (action == RequestHandler.Actions.DELETE) {

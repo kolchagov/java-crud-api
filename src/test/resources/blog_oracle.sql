@@ -1,6 +1,6 @@
 alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'
 /
-ALTER SESSION SET ddl_lock_timeout=900
+alter session set ddl_lock_timeout = 900
 /
 
 declare
