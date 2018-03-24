@@ -31,10 +31,10 @@ class TableMeta {
     public TableMeta(String table) {
         this.table = table;
         foreignKeys = new HashSet<>();
-        referencedTablePrimaryKeys = new HashMap<>();
-        foreignToPrimaryKeys = new HashMap<>();
-        primaryToForeignKeys = new HashMap<>();
-        referencedTables = new HashMap<>();
+        referencedTablePrimaryKeys = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        foreignToPrimaryKeys = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        primaryToForeignKeys = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        referencedTables = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
     }
 
     public String getName() {

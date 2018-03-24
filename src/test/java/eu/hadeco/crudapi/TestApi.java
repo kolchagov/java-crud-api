@@ -68,7 +68,7 @@ public class TestApi {
                 assertEquals("expected ok response, got: " + actual, isOkResponse, resp.getStatus() < 400);
                 if (expected != null) {
                     if (isOkResponse) {
-                        JsonAssert.assertJsonEquals(expected.toLowerCase(), actual.toLowerCase());
+                        JsonAssert.assertJsonEquals(expected.toLowerCase(), actual.toLowerCase() );
                     } else {
                         assertEquals( expected.toLowerCase(), actual.toLowerCase() );
                     }

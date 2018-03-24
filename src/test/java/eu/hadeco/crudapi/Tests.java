@@ -626,7 +626,7 @@ public abstract class Tests extends TestBase {
     public void testListProducts() {
         TestApi test = new TestApi(this);
         test.get("/products?columns=id,name,price&transform=1");
-        test.expect("{\"products\":[{\"id\":1,\"name\":\"Calculator\",\"price\":\"23.01\"}]}");
+        test.expect("{\"products\":[{\"id\":1,\"name\":\"Calculator\",\"price\":23.01}]}");
     }
 
     @Test
