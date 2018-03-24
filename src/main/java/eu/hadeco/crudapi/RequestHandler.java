@@ -310,6 +310,7 @@ public class RequestHandler {
         List<String> includedList = new ArrayList<>();
         if (included != null) {
             for (String includedTable : included.split(",")) {
+                includedTable = nativeTableName(includedTable);
                 if (!includedList.contains(includedTable)) {
                     includedList.add(includedTable);
                     final Map<String, String> columnTypesMap = getColumnTypesMap(includedTable);
@@ -370,6 +371,7 @@ public class RequestHandler {
         if (request.getParameter("exclude") != null) {
             String[] excludedColumns = request.getParameter("exclude").split(",");
             for (String excludedColumn : excludedColumns) {
+                excludedColumn = nativeColumnName(excludedColumn);
                 if (excludedColumn.contains(".")) {
                     final String tableName = getTableName(excludedColumn);
                     columnsMap.get(tableName).remove(excludedColumn);
