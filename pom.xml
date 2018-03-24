@@ -143,14 +143,14 @@
 
         <!-- Install Local Dependency -->
         <!--
-        wget https://devtools.jahia.com/nexus/content/groups/maven-jahia-org/com/oracle/ojdbc5/11.2.0.2.0/ojdbc5-11.2.0.2.0.jar
-        mvn install:install-file -Dfile=ojdbc5-11.2.0.2.0.jar -DgroupId=com.oracle \
-        -DartifactId=ojdbc5 -Dversion=11.2.0.2.0 -Dpackaging=jar -DgeneratePom=true
+        wget https://devtools.jahia.com/nexus/content/groups/maven-jahia-org/com/oracle/ojdbc6/12.1.0.1/ojdbc6-12.1.0.1.jar
+        mvn install:install-file -Dfile=ojdbc6-12.1.0.1.jar -DgroupId=com.oracle \
+        -DartifactId=ojdbc6 -Dversion=12.1.0.1 -Dpackaging=jar -DgeneratePom=true
         -->
         <dependency>
             <groupId>com.oracle</groupId>
-            <artifactId>ojdbc5</artifactId>
-            <version>11.2.0.2.0</version>
+            <artifactId>ojdbc6</artifactId>
+            <version>12.1.0.1</version>
         </dependency>
 
 
