@@ -312,5 +312,5 @@ CREATE OR REPLACE TRIGGER barcodes_autoinc
   END;
 /
 
-INSERT INTO barcodes (id, product_id, hex, bin) VALUES (1, 1, '00ff01', RAWTOHEX('00ff01'))
+INSERT INTO barcodes (id, product_id, hex, bin) VALUES (1, 1, '00ff01', HEXTORAW('00ff01'))
 /

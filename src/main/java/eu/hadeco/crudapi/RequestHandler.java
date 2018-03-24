@@ -54,7 +54,6 @@ import org.slf4j.LoggerFactory;
 public class RequestHandler {
 
     private static final Logger LOGR = LoggerFactory.getLogger(RequestHandler.class);
-//            Logger.getLogger(RequestHandler.class.getName());
     private static final String ID_KEY = "!_id_!";
     private static final Gson gson;
 
@@ -345,7 +344,8 @@ public class RequestHandler {
             for (String column : columnsArray) {
                 if (column.contains(".")) {
                     final String tableName = getTableName(column);
-                    final String colName = column.substring(tableName.length() + 1);
+                    String colName = column.substring(tableName.length() + 1);
+                    colName = nativeColumnName(colName);
                     if ("*".equals(colName)) {
                         putColumns(columnsMap, tableName, getColumnTypesMap(tableName).keySet());
                     } else {
@@ -727,8 +727,6 @@ public class RequestHandler {
             case "VARCHAR2":
             case "NVARCHAR":
             case "LONGVARCHAR":
-            case "DECIMAL":         //this type is included as string in tests
-            case "NUMERIC":         //this type is included as string in tests
                 value = rs.getString(colName);
                 break;
 //            case "NUMERIC":         //this type is included as string in tests
@@ -751,6 +749,8 @@ public class RequestHandler {
                 value = rs.getLong(colName);
                 break;
             case "REAL":
+            case "DECIMAL":
+            case "NUMERIC":         //this type is included as string in tests
                 if (rs.getString(colName).contains(".")) {
                     value = rs.getFloat(colName);
                 } else {
@@ -1456,6 +1456,9 @@ public class RequestHandler {
                 //
                 if (config.isMsSQL()) {
                     result[i] = String.format("%s.STAsText() as %s", column, column.replace(".", "_"));
+                } else if(config.isOracle()){
+//                    result[i] = String.format("ST_asText(%s) as %s", column, column.replace(".", "_"));
+                    result[i] = column;
                 } else {
                     result[i] = String.format("ST_asText(%s) as %s", column, column.replace(".", "_"));
                 }

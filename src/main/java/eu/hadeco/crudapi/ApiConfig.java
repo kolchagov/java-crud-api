@@ -281,9 +281,7 @@ public class ApiConfig {
         return MICROSOFT.equals(properties.get("dataSourceClassName"));
     }
 
-    public boolean isOracle() {
-        return ORACLE.equals(properties.get("dataSourceClassName")) || properties.getProperty("jdbcUrl","").startsWith("jdbc:oracle");
-    }
+    public boolean isOracle() { return ORACLE.equals(properties.get("dataSourceClassName")) || properties.getProperty("jdbcUrl","").startsWith("jdbc:oracle"); }
 
     public boolean isPSQL() {
         return POSTGRESQL.equals(properties.get("dataSourceClassName"));
