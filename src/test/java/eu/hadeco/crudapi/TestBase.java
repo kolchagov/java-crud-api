@@ -89,9 +89,7 @@ public abstract class TestBase {
                 @Override
                 protected Object inputValidator(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
 //                    ($column=='category_id' && !is_numeric($value))?'must be numeric':true;
-//                    return "category_id".equals(column) && !(value instanceof Long) ? "must be numeric" : true;
-                    boolean invalid = "category_id".equalsIgnoreCase(column) && !isNumeric(value);
-                    return invalid ? "must be numeric" : true;
+                    return "category_id".equalsIgnoreCase(column) && !isNumeric(value) ? "must be numeric" : true;
                 }
 
                 @Override

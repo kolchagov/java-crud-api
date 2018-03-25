@@ -52,37 +52,14 @@ public class OracleTest extends Tests {
     @Override
     public boolean checkVersion(Connection link) throws SQLException {
         boolean isSupported = true;
-/*        final String databaseProductVersion = link.getMetaData().getDatabaseProductVersion();
-        System.out.println(databaseProductVersion);
-        final String[] versionInfo = databaseProductVersion.split("\\.");
-        if (versionInfo.length > 2) {
-            int majorVersion = Integer.valueOf(versionInfo[0]);
-            isSupported = majorVersion >= 5;
-        }*/
+        //TODO: check support
         return isSupported;
     }
 
     @Override
     public int getCapabilities(Connection link) {
         int capabilities = 0;
-//        capabilities = capabilities | GIS;
-//        capabilities = capabilities | JSON;
-        /*
-        try {
-            final String databaseProductVersion = link.getMetaData().getDatabaseProductVersion();
-            final String[] versionInfo = databaseProductVersion.split("\\.");
-            if (versionInfo.length > 2) {
-                int minorVersion = Integer.valueOf(versionInfo[1]);
-                if (minorVersion >= 6) {
-                    capabilities = capabilities | GIS;
-                }
-                if (minorVersion >= 7) {
-                    capabilities = capabilities | JSON;
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }*/
+        //TODO: check capabilities
         return capabilities;
     }
 
@@ -118,6 +95,7 @@ public class OracleTest extends Tests {
             if (sb.length() > 0) {
                 String line = sb.toString().trim();
                 //System.out.println(line);
+                // TODO
                 /*
                 if ((capabilities & JSON) == 0) {
                     line = line.replaceAll("JSON NOT NULL", "text NOT NULL");
