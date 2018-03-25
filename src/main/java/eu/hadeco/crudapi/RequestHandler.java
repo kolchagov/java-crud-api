@@ -56,6 +56,7 @@ public class RequestHandler {
     private static final Logger LOGR = LoggerFactory.getLogger(RequestHandler.class);
     private static final String ID_KEY = "!_id_!";
     private static final Gson gson;
+    private static final boolean DEBUG_SQL = true;
 
     static {
         final GsonBuilder gsonBuilder = new GsonBuilder();
@@ -224,8 +225,6 @@ public class RequestHandler {
         if (table == null) {
             throw new IllegalStateException("Invalid table name");
         }
-
-//        this.inputTypeMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
         Map<String, List<String>> orderMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
         String[] orderParam;
@@ -480,10 +479,10 @@ public class RequestHandler {
         if (filters != null) {
             for (String filter : filters) {
                 if (filter.contains(".")) {
-                    if (filter.startsWith(prefix)) {
+                    if (filter.toLowerCase().startsWith(prefix.toLowerCase())) {
                         result.add(filter);
                     }
-                } else if (this.table.equals(table)) {
+                } else if (this.table.equalsIgnoreCase(table)) {
                     result.add(String.format("%s.%s", table, filter));
                 }
             }
@@ -492,7 +491,7 @@ public class RequestHandler {
         final String[] extraFilters = config.recordFilter(action, databaseName, table);
         if (extraFilters != null) {
             for (String filter : extraFilters) {
-                if (filter.startsWith(prefix)) {
+                if (filter.toLowerCase().startsWith(prefix.toLowerCase())) {
                     result.add(filter);
                 } else if (!filter.contains(".")) {
                     result.add(String.format("%s.%s", table, filter));
@@ -510,21 +509,21 @@ public class RequestHandler {
         Map map = new HashMap<>();
         map.put("sql", sql);
         String pageParam = req.getParameter("page");
-        final List<String> orders = applyOrder(sql, table);
-        Integer resultCount = null;
         if (pageParam != null) {
+
+            final List<String> orders = applyOrder(sql, table);
             if (orders == null) {
                 throw new IllegalStateException("'page' without 'order' is not possible!");
             }
-            resultCount = getResultCount(link, orders.get(0), table);
+
+            Integer resultCount = getResultCount(link, orders.get(0), table);
             map.put("resultCount", resultCount);
+
             String[] split = pageParam.split(",");
             int pages = Integer.valueOf(split[0]);
-            int length = 20;
-            if (split.length == 2) {
-                length = Integer.valueOf(split[1]);
-            }
             pages = pages > 0 ? pages - 1 : 0;
+
+            int length = split.length==2 ? Integer.valueOf(split[1]) : 20;
             int limit = length;
             int offset = pages * length;
             final boolean msSQL = config.isMsSQL();
@@ -692,8 +691,8 @@ public class RequestHandler {
         } catch (SQLException ignored) {
             colName = fullName;
         }
-        String type = typeMap.get(fullName).toUpperCase();
         //POSTGRES JDBC driver returns lower-cased types
+        String type = typeMap.get(fullName).toUpperCase();
         if (isBinaryColumn(fullName, typeMap)) {
             type = BINARY;
         } else if (isTimeColumn(fullName, typeMap)) {
@@ -837,12 +836,10 @@ public class RequestHandler {
         if (isReadOnly() && config.isPSQL()) {
             statement = link.prepareStatement(breakdown.getSql());
         } else if(config.isOracle() ){
-
             String [] pks = {};
             if(this.idColumn != null) {
                 pks = new String[]{ this.idColumn.split("\\.")[1] };
             }
-
             statement = link.prepareStatement(breakdown.getSql(), pks);
         } else {
             statement = link.prepareStatement(breakdown.getSql(), Statement.RETURN_GENERATED_KEYS);
@@ -867,9 +864,16 @@ public class RequestHandler {
             }
             convertedList.add(converted);
         }
+        debugSQL(breakdown, convertedList);
         LOGR.info(String.format("%s with params: %s", breakdown.getSql(), gson.toJson(convertedList)));
         return statement;
     }
+
+    private void debugSQL(Breakdown breakdown, Object parameters){
+        if(DEBUG_SQL)
+        System.out.format("%s\n%s\n\n", breakdown.getSql(), parameters);
+    }
+
 
     private SQLXML getSqlxmlObject(Object converted) throws SQLException {
         final SQLXML sqlxml = link.createSQLXML();
