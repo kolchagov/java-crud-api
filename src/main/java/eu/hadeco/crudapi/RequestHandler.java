@@ -1316,7 +1316,7 @@ public class RequestHandler {
                 }
             }
             applyOrder(sql, table);
-            try (ResultSet resultSet = prepareStatement(sql ).executeQuery()) {
+            try (ResultSet resultSet = prepareStatement(sql).executeQuery()) {
                 writer.write(",");
                 streamRecords(writer, columnsList, collectIds, resultSet, null, mt);
             }
