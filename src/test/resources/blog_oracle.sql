@@ -47,10 +47,7 @@ CREATE OR REPLACE TRIGGER categories_autoinc
   v_next_id number;
   BEGIN
     v_next_id := categories_seq.NEXTVAL;
-    if :new.id is not null then
-      v_next_id := :new.id;
-    end if;
-    :new.id := v_next_id;
+    :new.id   := nvl(:new.id, v_next_id);
   END;
 /
 
@@ -79,10 +76,7 @@ CREATE OR REPLACE TRIGGER users_autoinc
     v_next_id number;
   BEGIN
     v_next_id := users_seq.NEXTVAL;
-    if :new.id is not null then
-      v_next_id := :new.id;
-    end if;
-    :new.id := v_next_id;
+    :new.id   := nvl(:new.id, v_next_id);
   END;
 /
 
@@ -113,10 +107,7 @@ CREATE OR REPLACE TRIGGER posts_autoinc
     v_next_id number;
   BEGIN
     v_next_id := posts_seq.NEXTVAL;
-    if :new.id is not null then
-      v_next_id := :new.id;
-    end if;
-    :new.id := v_next_id;
+    :new.id   := nvl(:new.id, v_next_id);
   END;
 /
 
@@ -144,10 +135,7 @@ CREATE OR REPLACE TRIGGER comments_autoinc
     v_next_id number;
   BEGIN
     v_next_id := comments_seq.NEXTVAL;
-    if :new.id is not null then
-      v_next_id := :new.id;
-    end if;
-    :new.id := v_next_id;
+    :new.id   := nvl(:new.id, v_next_id);
   END;
 /
 
@@ -178,10 +166,7 @@ CREATE OR REPLACE TRIGGER tags_autoinc
     v_next_id number;
   BEGIN
     v_next_id := tags_seq.NEXTVAL;
-    if :new.id is not null then
-      v_next_id := :new.id;
-    end if;
-    :new.id := v_next_id;
+    :new.id   := nvl(:new.id, v_next_id);
   END;
 /
 
@@ -211,10 +196,7 @@ CREATE OR REPLACE TRIGGER post_tags_autoinc
     v_next_id number;
   BEGIN
     v_next_id := post_tags_seq.NEXTVAL;
-    if :new.id is not null then
-      v_next_id := :new.id;
-    end if;
-    :new.id := v_next_id;
+    :new.id   := nvl(:new.id, v_next_id);
   END;
 /
 
@@ -245,10 +227,7 @@ CREATE OR REPLACE TRIGGER countries_autoinc
     v_next_id number;
   BEGIN
     v_next_id := countries_seq.NEXTVAL;
-    if :new.id is not null then
-      v_next_id := :new.id;
-    end if;
-    :new.id := v_next_id;
+    :new.id   := nvl(:new.id, v_next_id);
   END;
 /
 
@@ -277,10 +256,7 @@ CREATE OR REPLACE TRIGGER events_autoinc
     v_next_id number;
   BEGIN
     v_next_id := events_seq.NEXTVAL;
-    if :new.id is not null then
-      v_next_id := :new.id;
-    end if;
-    :new.id := v_next_id;
+    :new.id   := nvl(:new.id, v_next_id);
   END;
 /
 
@@ -314,10 +290,7 @@ CREATE OR REPLACE TRIGGER products_autoinc
     v_next_id number;
   BEGIN
     v_next_id := products_seq.NEXTVAL;
-    if :new.id is not null then
-      v_next_id := :new.id;
-    end if;
-    :new.id := v_next_id;
+    :new.id   := nvl(:new.id, v_next_id);
   END;
 /
 
@@ -345,10 +318,7 @@ CREATE OR REPLACE TRIGGER barcodes_autoinc
     v_next_id number;
   BEGIN
     v_next_id := barcodes_seq.NEXTVAL;
-    if :new.id is not null then
-      v_next_id := :new.id;
-    end if;
-    :new.id := v_next_id;
+    :new.id   := nvl(:new.id, v_next_id);
   END;
 /
 

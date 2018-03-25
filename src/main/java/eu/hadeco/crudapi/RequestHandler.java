@@ -1466,7 +1466,6 @@ public class RequestHandler {
                 if (config.isMsSQL()) {
                     result[i] = String.format("%s.STAsText() as %s", column, column.replace(".", "_"));
                 } else if(config.isOracle()){
-//                    result[i] = String.format("ST_asText(%s) as %s", column, column.replace(".", "_"));
                     result[i] = column;
                 } else {
                     result[i] = String.format("ST_asText(%s) as %s", column, column.replace(".", "_"));
@@ -1550,7 +1549,6 @@ public class RequestHandler {
     }
 
     private LinkedTreeMap<String, Object> processRow(Map<String, Object> input, Map<String, String> typeMap) {
-//        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         LinkedTreeMap<String, Object> values = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (String key : input.keySet()) {
             Object value;
