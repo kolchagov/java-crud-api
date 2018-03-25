@@ -48,6 +48,7 @@ public class ApiConfig {
     public static final String SAP = "com.sap.dbtech.jdbc.DriverSapDB";
     public static final String XERIAL = "org.sqlite.SQLiteDataSource";
     public static final String JCONNECT = "com.sybase.jdbc4.jdbc.SybDataSource";
+
     private static final int CACHE_TO = 1*60 * 1000; //1min
     //contains table metadata map to gain some performance, refreshed every 30s
     private static Map<String, TableMeta> cachedTableMeta = null;
@@ -121,6 +122,12 @@ public class ApiConfig {
         if(isPSQL()) {
             //allows proper handling of timestamps like "2013-12-11 10:09:08"
             properties.put("dataSource.stringType", "unspecified");
+        }
+        if (ORACLE.equals(datasourceClassName)) {
+            properties.remove("dataSourceClassName");
+            properties.setProperty("DriverClassName","oracle.jdbc.OracleDriver");
+            String jdbcUrl = String.format("jdbc:oracle:thin:@%s:%d:%s", serverHostName, 1521, databaseName);
+            properties.setProperty("jdbcUrl", jdbcUrl );
         }
         final HikariConfig hikariConfig = new HikariConfig(properties);
 //        hikariConfig.setConnectionTestQuery("SELECT 1");
@@ -274,6 +281,8 @@ public class ApiConfig {
     public boolean isMsSQL() {
         return MICROSOFT.equals(properties.get("dataSourceClassName"));
     }
+
+    public boolean isOracle() { return ORACLE.equals(properties.get("dataSourceClassName")) || properties.getProperty("jdbcUrl","").startsWith("jdbc:oracle"); }
 
     public boolean isPSQL() {
         return POSTGRESQL.equals(properties.get("dataSourceClassName"));

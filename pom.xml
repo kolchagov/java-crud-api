@@ -65,6 +65,7 @@
             <artifactId>xom</artifactId>
             <version>1.0b3</version>
         </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.springframework/spring-jdbc -->
         <dependency>
             <groupId>org.springframework</groupId>
@@ -79,15 +80,17 @@
             <groupId>mysql</groupId>
             <artifactId>mysql-connector-java</artifactId>
             <version>${mysql.version}</version>
-            <scope>test</scope>
+            <!--<scope>test</scope>-->
         </dependency>
+
         <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>9.3-1100-jdbc41</version>
+            <version>42.2.2.jre7</version>
             <scope>test</scope>
         </dependency>
+
 
         <!-- https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
         <dependency>
@@ -104,6 +107,7 @@
             <!--Remove this scope if you paln to use MS SQL in production-->
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-test</artifactId>
@@ -134,6 +138,35 @@
             <version>4.11</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/oracle/ojdbc5 -->
+
+        <!-- Install Local Dependency -->
+        <!--
+        wget https://devtools.jahia.com/nexus/content/groups/maven-jahia-org/com/oracle/ojdbc6/12.1.0.1/ojdbc6-12.1.0.1.jar
+        mvn install:install-file -Dfile=ojdbc6-12.1.0.1.jar -DgroupId=com.oracle \
+        -DartifactId=ojdbc6 -Dversion=12.1.0.1 -Dpackaging=jar -DgeneratePom=true
+        -->
+        <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>ojdbc6</artifactId>
+            <version>12.1.0.1</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/oracle/xdb -->
+        <!--
+        wget http://www.datanucleus.org:15080/downloads/maven2/oracle/xdb/1.0/xdb-1.0.jar
+        mvn install:install-file -Dfile=xdb-1.0.jar -DgroupId=oracle \
+        -DartifactId=xdb -Dversion=1.0 -Dpackaging=jar -DgeneratePom=true
+        -->
+
+        <dependency>
+            <groupId>oracle</groupId>
+            <artifactId>xdb</artifactId>
+            <version>1.0</version>
+            <scope>test</scope>
+        </dependency>
+
+
     </dependencies>
     <build>
         <plugins>
@@ -170,4 +203,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>
