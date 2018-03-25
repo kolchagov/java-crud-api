@@ -56,7 +56,7 @@ public class RequestHandler {
     private static final Logger LOGR = LoggerFactory.getLogger(RequestHandler.class);
     private static final String ID_KEY = "!_id_!";
     private static final Gson gson;
-    private static final boolean DEBUG_SQL = true;
+    private static final boolean DEBUG_SQL = false;
 
     static {
         final GsonBuilder gsonBuilder = new GsonBuilder();
@@ -341,10 +341,10 @@ public class RequestHandler {
         if (columnsParam != null) {
             final String[] columnsArray = columnsParam.split(",");
             for (String column : columnsArray) {
+                column = nativeColumnName(column);
                 if (column.contains(".")) {
                     final String tableName = getTableName(column);
                     String colName = column.substring(tableName.length() + 1);
-                    colName = nativeColumnName(colName);
                     if ("*".equals(colName)) {
                         putColumns(columnsMap, tableName, getColumnTypesMap(tableName).keySet());
                     } else {
@@ -937,7 +937,7 @@ public class RequestHandler {
                 if (splitCommands.length < 3) {
                     throw new IllegalArgumentException("Invalid filter: " + filter);
                 }
-                String column = splitCommands[0];
+                String column = nativeColumnName(splitCommands[0]);
                 String parameter = splitCommands[1]; // compare parameter
                 final boolean isGeometryColumn = isGeometryObject(column);
                 int stExpected = 1;
@@ -945,7 +945,7 @@ public class RequestHandler {
                     addNextCondition(sql, column, satisfyAny, isNextCondition);
                 } else if (parameter.startsWith("n")) {
                     stExpected = 0; //check negative condition
-                    parameter = parameter.substring(1);
+                    parameter = parameter.substring(1).toLowerCase();
                 }
                 String value = splitCommands[2];
                 String spatialFilter = null;
@@ -1376,17 +1376,14 @@ public class RequestHandler {
         if (tablesMap != null) {
             return tablesMap;
         }
-//        tablesMap = new HashMap<>();
         tablesMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
 
-        DatabaseMetaData md;
-        md = link.getMetaData();
+        DatabaseMetaData md = link.getMetaData();
         String schemaPattern = getCurrentSchema();
 
         try (ResultSet tables = md.getTables(databaseName, schemaPattern,
                 "%", new String[]{"TABLE", "VIEW"})) {
             while (tables.next()) {
-//                final String tableSchem = tables.getString("TABLE_SCHEM");
                 final String table = tables.getString("TABLE_NAME");
                 if (!tablesMap.containsKey(table)) {
                     tablesMap.put(table, new TableMeta(table));

@@ -48,6 +48,7 @@ public class ApiConfig {
     public static final String SAP = "com.sap.dbtech.jdbc.DriverSapDB";
     public static final String XERIAL = "org.sqlite.SQLiteDataSource";
     public static final String JCONNECT = "com.sybase.jdbc4.jdbc.SybDataSource";
+
     private static final int CACHE_TO = 1*60 * 1000; //1min
     //contains table metadata map to gain some performance, refreshed every 30s
     private static Map<String, TableMeta> cachedTableMeta = null;
