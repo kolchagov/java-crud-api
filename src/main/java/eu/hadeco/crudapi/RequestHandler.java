@@ -134,7 +134,6 @@ public class RequestHandler {
         this.typeMap = getColumnTypesMap(tableName);
         this.includeTables = applyInclude();
         //add non-prefixed columns to process input
-        //this.inputTypeMap = new LinkedHashMap<>();
         this.inputTypeMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
         for (Map.Entry<String, String> entry : typeMap.entrySet()) {
             if (entry.getKey().startsWith(String.format("%s.", tableName))) {
@@ -838,8 +837,9 @@ public class RequestHandler {
         if (isReadOnly() && config.isPSQL()) {
             statement = link.prepareStatement(breakdown.getSql());
         } else if(config.isOracle() ){
+
             String [] pks = {};
-            if(this.idColumn!=null) {
+            if(this.idColumn != null) {
                 pks = new String[]{ this.idColumn.split("\\.")[1] };
             }
 
@@ -1054,11 +1054,10 @@ public class RequestHandler {
         }
 
         String valueFormat = "ST_GeomFromText('%s')";
-
         if(msSQL)
             valueFormat = "geometry::STGeomFromText('%s',0)";
         if(oracle)
-            valueFormat = "%s";
+            valueFormat = "SDO_GEOMETRY('%s')";
 
         final String valueCmd = String.format(valueFormat, value);
         return String.format(filter, column, valueCmd);
@@ -1520,9 +1519,9 @@ public class RequestHandler {
                     if (config.isMsSQL()) {
                         sql.FIELD(entry.getKey()).EQUAL().keyword("geometry::STGeomFromText")
                                 .openParen().VALUE(entry.getValue()).comma().VALUE(0).closeParen();
-                    } /*else if (config.isOracle()){
-                        sql.FIELD(entry.getKey()).EQUAL().VALUE(entry.getValue());
-                    }*/ else {
+                    } else if (config.isOracle()){
+                        sql.FIELD(entry.getKey()).EQUAL().keyword("SDO_GEOMETRY").openParen().VALUE(entry.getValue()).closeParen();
+                    } else {
                         sql.FIELD(entry.getKey()).EQUAL().keyword("ST_GeomFromText").openParen().VALUE(entry.getValue()).closeParen();
                     }
                 } else {
