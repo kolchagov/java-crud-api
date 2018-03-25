@@ -389,7 +389,7 @@ public abstract class Tests extends TestBase {
         test.get("/users/1?columns=id,location");
         if ("SQLServer".equals(this.getEngineName())) {
             test.expect("{\"id\":1,\"location\":\"POINT (30 20)\"}");
-        } else {
+        } else if( !apiConfig.isOracle() ){
             test.expect("{\"id\":1,\"location\":\"POINT(30 20)\"}");
         }
     }
@@ -400,7 +400,7 @@ public abstract class Tests extends TestBase {
         test.get("/users?columns=id,location");
         if ("SQLServer".equals(this.getEngineName())) {
             test.expect("{\"users\":{\"columns\":[\"id\",\"location\"],\"records\":[[1,\"POINT (30 20)\"]]}}");
-        } else {
+        } else if( !apiConfig.isOracle() ) {
             test.expect("{\"users\":{\"columns\":[\"id\",\"location\"],\"records\":[[1,\"POINT(30 20)\"]]}}");
         }
     }
