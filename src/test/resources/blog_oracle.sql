@@ -43,10 +43,14 @@ CREATE SEQUENCE categories_seq start with 1 increment by 1 nocycle
 CREATE OR REPLACE TRIGGER categories_autoinc
   BEFORE INSERT ON categories
   FOR EACH ROW
+  declare
+  v_next_id number;
   BEGIN
-    SELECT categories_seq.NEXTVAL
-    INTO   :new.id
-    FROM   dual;
+    v_next_id := categories_seq.NEXTVAL;
+    if :new.id is not null then
+      v_next_id := :new.id;
+    end if;
+    :new.id := v_next_id;
   END;
 /
 
@@ -71,10 +75,14 @@ CREATE SEQUENCE users_seq start with 1 increment by 1 nocycle
 CREATE OR REPLACE TRIGGER users_autoinc
   BEFORE INSERT ON users
   FOR EACH ROW
+  declare
+    v_next_id number;
   BEGIN
-    SELECT users_seq.NEXTVAL
-    INTO   :new.id
-    FROM   dual;
+    v_next_id := users_seq.NEXTVAL;
+    if :new.id is not null then
+      v_next_id := :new.id;
+    end if;
+    :new.id := v_next_id;
   END;
 /
 
@@ -101,10 +109,14 @@ CREATE SEQUENCE posts_seq start with 1 increment by 1 nocycle
 CREATE OR REPLACE TRIGGER posts_autoinc
   BEFORE INSERT ON posts
   FOR EACH ROW
+  declare
+    v_next_id number;
   BEGIN
-      select posts_seq.NEXTVAL
-      INTO   :new.id
-      FROM   dual;
+    v_next_id := posts_seq.NEXTVAL;
+    if :new.id is not null then
+      v_next_id := :new.id;
+    end if;
+    :new.id := v_next_id;
   END;
 /
 
@@ -128,10 +140,14 @@ CREATE SEQUENCE comments_seq start with 1 increment by 1 nocycle
 CREATE OR REPLACE TRIGGER comments_autoinc
   BEFORE INSERT ON comments
   FOR EACH ROW
+  declare
+    v_next_id number;
   BEGIN
-    SELECT comments_seq.NEXTVAL
-    INTO   :new.id
-    FROM   dual;
+    v_next_id := comments_seq.NEXTVAL;
+    if :new.id is not null then
+      v_next_id := :new.id;
+    end if;
+    :new.id := v_next_id;
   END;
 /
 
@@ -158,10 +174,14 @@ CREATE SEQUENCE tags_seq start with 1 increment by 1 nocycle
 CREATE OR REPLACE TRIGGER tags_autoinc
   BEFORE INSERT ON tags
   FOR EACH ROW
+  declare
+    v_next_id number;
   BEGIN
-    SELECT tags_seq.NEXTVAL
-    INTO   :new.id
-    FROM   dual;
+    v_next_id := tags_seq.NEXTVAL;
+    if :new.id is not null then
+      v_next_id := :new.id;
+    end if;
+    :new.id := v_next_id;
   END;
 /
 
@@ -187,10 +207,14 @@ CREATE SEQUENCE post_tags_seq start with 1 increment by 1 nocycle
 CREATE OR REPLACE TRIGGER post_tags_autoinc
   BEFORE INSERT ON post_tags
   FOR EACH ROW
+  declare
+    v_next_id number;
   BEGIN
-    SELECT post_tags_seq.NEXTVAL
-    INTO   :new.id
-    FROM   dual;
+    v_next_id := post_tags_seq.NEXTVAL;
+    if :new.id is not null then
+      v_next_id := :new.id;
+    end if;
+    :new.id := v_next_id;
   END;
 /
 
@@ -217,10 +241,14 @@ CREATE SEQUENCE countries_seq start with 1 increment by 1 nocycle
 CREATE OR REPLACE TRIGGER countries_autoinc
   BEFORE INSERT ON countries
   FOR EACH ROW
+  declare
+    v_next_id number;
   BEGIN
-    SELECT countries_seq.NEXTVAL
-    INTO   :new.id
-    FROM   dual;
+    v_next_id := countries_seq.NEXTVAL;
+    if :new.id is not null then
+      v_next_id := :new.id;
+    end if;
+    :new.id := v_next_id;
   END;
 /
 
@@ -245,10 +273,14 @@ CREATE SEQUENCE events_seq start with 1 increment by 1 nocycle
 CREATE OR REPLACE TRIGGER events_autoinc
   BEFORE INSERT ON events
   FOR EACH ROW
+  declare
+    v_next_id number;
   BEGIN
-    SELECT events_seq.NEXTVAL
-    INTO   :new.id
-    FROM   dual;
+    v_next_id := events_seq.NEXTVAL;
+    if :new.id is not null then
+      v_next_id := :new.id;
+    end if;
+    :new.id := v_next_id;
   END;
 /
 
@@ -278,10 +310,14 @@ CREATE SEQUENCE products_seq start with 1 increment by 1 nocycle
 CREATE OR REPLACE TRIGGER products_autoinc
   BEFORE INSERT ON products
   FOR EACH ROW
+  declare
+    v_next_id number;
   BEGIN
-    SELECT products_seq.NEXTVAL
-    INTO   :new.id
-    FROM   dual;
+    v_next_id := products_seq.NEXTVAL;
+    if :new.id is not null then
+      v_next_id := :new.id;
+    end if;
+    :new.id := v_next_id;
   END;
 /
 
@@ -305,10 +341,14 @@ CREATE SEQUENCE barcodes_seq start with 1 increment by 1 nocycle
 CREATE OR REPLACE TRIGGER barcodes_autoinc
   BEFORE INSERT ON barcodes
   FOR EACH ROW
+  declare
+    v_next_id number;
   BEGIN
-    SELECT barcodes_seq.NEXTVAL
-    INTO   :new.id
-    FROM   dual;
+    v_next_id := barcodes_seq.NEXTVAL;
+    if :new.id is not null then
+      v_next_id := :new.id;
+    end if;
+    :new.id := v_next_id;
   END;
 /
 
