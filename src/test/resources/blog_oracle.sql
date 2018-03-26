@@ -3,30 +3,6 @@ alter session set nls_date_format = 'YYYY-MM-DD HH24:MI:SS'
 alter session set ddl_lock_timeout = 900
 /
 
-declare
-  cursor cursor_constraints is select table_name, constraint_name
-                               from user_constraints
-                               where constraint_type in ('P', 'R', 'U')
-                               and table_name in ('BARCODES','CATEGORIES','COMMENTS','COUNTRIES','EVENTS','POST_TAGS','POSTS','PRODUCTS','TAGS','USERS')
-                               order by decode(constraint_type, 'R', 0, 'U', 1, 'P', 2, 3);
-  cursor cursor_tables is select table_name from user_tables where table_name in ('BARCODES','CATEGORIES','COMMENTS','COUNTRIES','EVENTS','POST_TAGS','POSTS','PRODUCTS','TAGS','USERS');
-  cursor cursor_sequences is select sequence_name from user_sequences where sequence_name in ('BARCODES_SEQ','CATEGORIES_SEQ','COMMENTS_SEQ','COUNTRIES_SEQ','EVENTS_SEQ','POST_TAGS_SEQ','POSTS_SEQ','PRODUCTS_SEQ','TAGS_SEQ','USERS_SEQ');
-begin
-  execute immediate 'drop view TAG_USAGE';
-  for current_val in cursor_constraints
-  loop
-    execute immediate 'alter table ' || current_val.table_name || ' drop constraint ' || current_val.constraint_name;
-  end loop;
-  for current_val in cursor_tables
-  loop
-    execute immediate 'drop table ' || current_val.table_name || ' purge';
-  end loop;
-  for current_val in cursor_sequences
-  loop
-    execute immediate 'drop sequence ' || current_val.sequence_name;
-  end loop;
-end;
-/
 
 CREATE TABLE categories (
   id number(11) NOT NULL,
@@ -212,7 +188,7 @@ INSERT INTO post_tags (id, post_id, tag_id) VALUES (4,  2,  2)
 CREATE TABLE countries (
   id number(11) NOT NULL,
   name varchar(255) NOT NULL,
-  shape sdo_geometry NOT NULL,
+  shape SDO_GEOMETRY NOT NULL,
   PRIMARY KEY (id)
 )
 /
