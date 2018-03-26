@@ -151,12 +151,12 @@
             <groupId>com.oracle</groupId>
             <artifactId>ojdbc6</artifactId>
             <version>12.1.0.1</version>
+            <scope>test</scope>
         </dependency>
         <!-- https://mvnrepository.com/artifact/oracle/xdb -->
         <!--
         wget http://www.datanucleus.org:15080/downloads/maven2/oracle/xdb/1.0/xdb-1.0.jar
-        mvn install:install-file -Dfile=xdb-1.0.jar -DgroupId=oracle \
-        -DartifactId=xdb -Dversion=1.0 -Dpackaging=jar -DgeneratePom=true
+        mvn install:install-file -Dfile=xdb-1.0.jar -DgroupId=oracle -DartifactId=xdb -Dversion=1.0 -Dpackaging=jar -DgeneratePom=true
         -->
 
         <dependency>

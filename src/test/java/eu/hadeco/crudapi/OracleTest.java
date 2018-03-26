@@ -51,15 +51,35 @@ public class OracleTest extends Tests {
 
     @Override
     public boolean checkVersion(Connection link) throws SQLException {
-        boolean isSupported = true;
-        //TODO: check support
+        final String databaseProductString = link.getMetaData().getDatabaseProductVersion();
+        final String releaseKeyword = "Release ";
+        int releaseIdx = databaseProductString.lastIndexOf(releaseKeyword) + releaseKeyword.length();
+        boolean isSupported = releaseIdx > 0;
+        if (isSupported) {
+            String[] version = databaseProductString.substring(releaseIdx).split("\\.");
+            final Integer major = Integer.valueOf(version[0]);
+            final Integer minor = Integer.valueOf(version[1]);
+            isSupported = major == 11 ? minor >= 2 : major > 11; //minimum supported JDBC version is 11.2
+        }
         return isSupported;
     }
 
     @Override
     public int getCapabilities(Connection link) {
+        //Oracle Express does not have a Javavm in the database and the WKT conversion routines need this as the feature
+        // is implemented as Java stored procedures. So these WKT routines are not supported on the Express edition.
+        // https://stackoverflow.com/questions/44832223/oracle-converting-sdo-geometry-to-wkt
         int capabilities = 0;
-        //TODO: check capabilities
+        try {
+            final String databaseProductVersion = link.getMetaData().getDatabaseProductVersion();
+            if (databaseProductVersion.toLowerCase().contains("express edition")) {
+                capabilities = JSON;
+            } else {
+                capabilities = JSON | GIS;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
         return capabilities;
     }
 
@@ -80,14 +100,18 @@ public class OracleTest extends Tests {
         while (true) {
             String line = reader.readLine().trim();
             //skip comments
-            if(line.startsWith("/")) break;
-            if(!line.isEmpty())
+            if (line.startsWith("--")) { //NOI18N
+                break;
+            }
+            if (line.startsWith("/")) break;
+            if (!line.isEmpty())
                 sb.append(line).append(' ');
         }
     }
 
     private void executeSQLScript(int capabilities, Connection conn, BufferedReader reader) throws IOException, SQLException {
         StringBuilder sb = new StringBuilder();
+        dropAllDataObjects(conn);
         conn.setAutoCommit(false);
         Statement stmt = conn.createStatement();
         while (reader.ready()) {
@@ -95,25 +119,12 @@ public class OracleTest extends Tests {
             if (sb.length() > 0) {
                 String line = sb.toString().trim();
                 //System.out.println(line);
-                // TODO
-                /*
-                if ((capabilities & JSON) == 0) {
-                    line = line.replaceAll("JSON NOT NULL", "text NOT NULL");
-                }
                 if ((capabilities & GIS) == 0) {
-                    line = line.replaceAll("(POINT|POLYGON)( NOT)? NULL", "text\u0002 NULL");
-                    line = line.replaceAll("ST_GeomFromText", "concat");
+                    line = line.replaceAll("(SDO_GEOMETRY)( NOT)? NULL", "varchar(255) NULL");
+                    line = line.replaceAll("SDO_GEOMETRY\\('(.*)'\\)", "'$1'");
                 }
-                */
                 try {
-
-                    if( isPLSQLBlock(line) ){
-                        CallableStatement cstmt = conn.prepareCall(line);
-                        cstmt.execute();
-                    }else {
-                        stmt.addBatch(line);
-                    }
-
+                    stmt.addBatch(line);
                 } catch (SQLException ex) {
                     System.out.println("error line: " + line);
                     throw ex;
@@ -124,9 +135,16 @@ public class OracleTest extends Tests {
         conn.setAutoCommit(true);
     }
 
-    private boolean isPLSQLBlock(String psql){
-        psql = psql.toUpperCase();
-        return psql.startsWith("DECLARE") || psql.startsWith("BEGIN");
+    /**
+     * Drops all DB objects for current schema (user)
+     * @param conn DB connection
+     */
+    private void dropAllDataObjects(Connection conn) {
+        try (CallableStatement stmt = conn.prepareCall("BEGIN FOR cur_rec IN (SELECT object_name, object_type FROM user_objects WHERE object_type IN ('TABLE', 'VIEW', 'PACKAGE', 'PROCEDURE', 'FUNCTION', 'SEQUENCE', 'SYNONYM', 'PACKAGE BODY' )) LOOP BEGIN IF cur_rec.object_type = 'TABLE' THEN EXECUTE IMMEDIATE    'DROP ' || cur_rec.object_type || ' \"' || cur_rec.object_name || '\" CASCADE CONSTRAINTS'; ELSE EXECUTE IMMEDIATE    'DROP ' || cur_rec.object_type || ' \"' || cur_rec.object_name || '\"'; END IF; EXCEPTION WHEN OTHERS THEN DBMS_OUTPUT.put_line (   'FAILED: DROP ' || cur_rec.object_type || ' \"' || cur_rec.object_name || '\"' ); END; END LOOP; END;")) {
+            stmt.execute();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
 }

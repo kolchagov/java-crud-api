@@ -630,7 +630,8 @@ PUT http://localhost:8080/users/1
 ```
 
 In the above example you see how a [WKT string](https://en.wikipedia.org/wiki/Well-known_text) is sent.
-
+Note: Oracle XE doesn't support WKT string conversion.
+"Oracle Express does not have a Javavm in the database and the WKT conversion routines need this as the feature is implemented as Java stored procedures. So these WKT routines are not supported on the Express edition." 
 ## Unstructured data support
 
 You may store JSON documents in JSON (MySQL), JSONB (PostgreSQL) or XML (SQL Server) field types in the database.
@@ -731,6 +732,7 @@ Tests have been performed in windows & Ubuntu 14.04 with following setups:
   - Ubuntu 14.04 Server with MySQL 5.6
   - Ubuntu 14.04 Server with MySQL 5.7
   - Windows 10x64 and SQL Server 2012 (build 2100)
+  - Windows 10x64 and Oracle Expresss edition 11.2
 
 
 ## Building a executable JAR file
@@ -763,3 +765,10 @@ The project uses internally sources from 'fluentsql' project and 'Base64' class 
  https://github.com/aosp-mirror/platform_frameworks_base/blob/master/core/java/android/util/Base64.java
  
 Both of them licensed under Apache Public License v2.0. 
+## Binary files for Oracle JDBC connector
+The project uses ojdbc6 drivers, which are compatible with Java 7. Xdb-1.0.jar is needed only for SDO extensions, you may skip it if GIS functionality is not needed.
+Oracle JDBC files are not available in Maven. You should download them from Oracle site and install them into your local maven repository using the following commands:
+```bash
+ mvn install:install-file -Dfile=ojdbc6-12.1.0.1.jar -DgroupId=com.oracle -DartifactId=ojdbc6 -Dversion=12.1.0.1 -Dpackaging=jar -DgeneratePom=true
+ mvn install:install-file -Dfile=xdb-1.0.jar -DgroupId=oracle -DartifactId=xdb -Dversion=1.0 -Dpackaging=jar -DgeneratePom=true
+```

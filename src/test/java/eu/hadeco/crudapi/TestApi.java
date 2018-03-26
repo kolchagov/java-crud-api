@@ -32,8 +32,6 @@ import java.net.URLDecoder;
 import java.sql.Connection;
 import java.util.List;
 
-import static net.javacrumbs.jsonunit.JsonAssert.when;
-import static net.javacrumbs.jsonunit.core.Option.IGNORING_ARRAY_ORDER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -69,9 +67,16 @@ public class TestApi {
                 assertEquals("expected ok response, got: " + actual, isOkResponse, resp.getStatus() < 400);
                 if (expected != null) {
                     if (isOkResponse) {
-                        JsonAssert.assertJsonEquals(expected.toLowerCase(), actual.toLowerCase(), when(IGNORING_ARRAY_ORDER) );
+                        try {
+                        JsonAssert.assertJsonEquals(expected, actual);
+                        } catch(AssertionError ex) {
+                            System.out.println("*** expected and actual JSON output:");
+                            System.out.println(expected);
+                            System.out.println(actual);
+                            throw ex;
+                        }
                     } else {
-                        assertEquals( expected.toLowerCase(), actual.toLowerCase() );
+                        assertEquals(expected, actual);
                     }
                 }
             }
