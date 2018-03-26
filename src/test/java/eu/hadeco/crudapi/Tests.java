@@ -370,7 +370,7 @@ public abstract class Tests extends TestBase {
     @Test
     public void testMissingIntermediateTable() {
         TestApi test = new TestApi(this);
-        test.get("/users?include=posts,tags");
+        test.get("/users?include=posts,tags&order=posts.id");
         test.expect("{\"users\":{\"columns\":[\"id\",\"username\",\"location\"],\"records\":[[1,\"user1\",null]]},\"posts\":{\"relations\":{\"user_id\":\"users.id\"},\"columns\":[\"id\",\"user_id\",\"category_id\",\"content\"],\"records\":[[1,1,1,\"blog started\"],[2,1,2,\"€ Hello world, Καλημέρα κόσμε, コンニチハ\"],[5,1,1,\"#1\"],[6,1,1,\"#2\"],[7,1,1,\"#3\"],[8,1,1,\"#4\"],[9,1,1,\"#5\"],[10,1,1,\"#6\"],[11,1,1,\"#7\"],[12,1,1,\"#8\"],[14,1,1,\"#10\"]]},\"post_tags\":{\"relations\":{\"post_id\":\"posts.id\"},\"columns\":[\"id\",\"post_id\",\"tag_id\"],\"records\":[[1,1,1],[2,1,2],[3,2,1],[4,2,2]]},\"tags\":{\"relations\":{\"id\":\"post_tags.tag_id\"},\"columns\":[\"id\",\"name\"],\"records\":[[1,\"funny\"],[2,\"important\"]]}}");
     }
 
@@ -389,7 +389,7 @@ public abstract class Tests extends TestBase {
         test.get("/users/1?columns=id,location");
         if ("SQLServer".equals(this.getEngineName())) {
             test.expect("{\"id\":1,\"location\":\"POINT (30 20)\"}");
-        } else if( !apiConfig.isOracle() ){
+        } else {
             test.expect("{\"id\":1,\"location\":\"POINT(30 20)\"}");
         }
     }
@@ -400,7 +400,7 @@ public abstract class Tests extends TestBase {
         test.get("/users?columns=id,location");
         if ("SQLServer".equals(this.getEngineName())) {
             test.expect("{\"users\":{\"columns\":[\"id\",\"location\"],\"records\":[[1,\"POINT (30 20)\"]]}}");
-        } else if( !apiConfig.isOracle() ) {
+        } else {
             test.expect("{\"users\":{\"columns\":[\"id\",\"location\"],\"records\":[[1,\"POINT(30 20)\"]]}}");
         }
     }
@@ -489,7 +489,7 @@ public abstract class Tests extends TestBase {
     @Test
     public void testFilterOnRelationAnd() {
         TestApi test = new TestApi(this);
-        test.get("/categories?include=posts&filter[]=id,ge,1&filter[]=id,le,1&filter[]=id,le,2&filter[]=posts.id,lt,8&filter[]=posts.id,gt,4");
+        test.get("/categories?include=posts&filter[]=id,ge,1&filter[]=id,le,1&filter[]=id,le,2&filter[]=posts.id,lt,8&filter[]=posts.id,gt,4&&order=posts.id");
         test.expect("{\"categories\":{\"columns\":[\"id\",\"name\",\"icon\"],\"records\":[[1,\"announcement\",null]]},\"posts\":{\"relations\":{\"category_id\":\"categories.id\"},\"columns\":[\"id\",\"user_id\",\"category_id\",\"content\"],\"records\":[[5,1,1,\"#1\"],[6,1,1,\"#2\"],[7,1,1,\"#3\"]]}}");
     }
 
@@ -626,7 +626,7 @@ public abstract class Tests extends TestBase {
     public void testListProducts() {
         TestApi test = new TestApi(this);
         test.get("/products?columns=id,name,price&transform=1");
-        test.expect("{\"products\":[{\"id\":1,\"name\":\"Calculator\",\"price\":23.01}]}");
+        test.expect("{\"products\":[{\"id\":1,\"name\":\"Calculator\",\"price\":\"23.01\"}]}");
     }
 
     @Test

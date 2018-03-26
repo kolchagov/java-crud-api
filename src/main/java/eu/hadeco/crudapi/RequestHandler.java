@@ -40,6 +40,7 @@ import java.lang.reflect.Type;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
+import java.util.logging.Level;
 
 import static com.ivanceras.fluent.sql.SQL.Statics.DELETE;
 import static com.ivanceras.fluent.sql.SQL.Statics.*;
@@ -48,12 +49,10 @@ import static eu.hadeco.crudapi.RequestHandler.Actions.CREATE;
 import static eu.hadeco.crudapi.RequestHandler.Actions.DELETE;
 import static eu.hadeco.crudapi.RequestHandler.Actions.*;
 import static eu.hadeco.crudapi.RequestHandler.Actions.UPDATE;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class RequestHandler {
 
-    private static final Logger LOGR = LoggerFactory.getLogger(RequestHandler.class);
+    private static final java.util.logging.Logger LOGR = java.util.logging.Logger.getLogger(RequestHandler.class.getName());
     private static final String ID_KEY = "!_id_!";
     private static final Gson gson;
     private static final boolean DEBUG_SQL = false;
@@ -148,8 +147,8 @@ public class RequestHandler {
     /**
      * Default servlet handler. Use it to handle servlet requests
      *
-     * @param req servlet request
-     * @param resp servlet response to handle
+     * @param req       servlet request
+     * @param resp      servlet response to handle
      * @param apiConfig preconfigured ApiConfig class
      * @throws IOException
      */
@@ -181,7 +180,7 @@ public class RequestHandler {
                 final String message = ex.getMessage() == null ? "null" : ex.getMessage();
                 writer.write(message);
             } catch (Exception e) {
-                LOGR.error(e.getMessage(), e);
+                LOGR.log(Level.SEVERE, e.getMessage(), e);
                 resp.setContentType("text/plain");
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 writer.println(String.format("Internal exception: '%s'", e.getMessage()));
@@ -225,8 +224,7 @@ public class RequestHandler {
         if (table == null) {
             throw new IllegalStateException("Invalid table name");
         }
-
-        Map<String, List<String>> orderMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        Map<String, List<String>> orderMap = new HashMap<>();
         String[] orderParam;
         orderParam = req.getParameterValues("order[]");
         if (orderParam == null) {
@@ -286,15 +284,15 @@ public class RequestHandler {
         Map<String, String> typeMap;
         try (ResultSet rs = link.createStatement().executeQuery(String.format("SELECT * from %s where 0=1", table))) {
             rsMeta = rs.getMetaData();
-            typeMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
+            typeMap = new LinkedHashMap<>();
             for (int i = 0; i < rsMeta.getColumnCount(); i++) {
                 String columnTypeName = rsMeta.getColumnTypeName(i + 1);
                 if ("NULL".equals(columnTypeName)) {
                     //special case: sqlite view's count() columns
                     columnTypeName = "INT";
                 }
-                String fullColumnName = String.format("%s.%s", table, rsMeta.getColumnName(i + 1));
-                typeMap.put(fullColumnName, columnTypeName);
+                final String columnName = rsMeta.getColumnName(i + 1);
+                typeMap.put(getFullColumnName(table, columnName), columnTypeName);
 
             }
         } catch (SQLException ex) {
@@ -323,16 +321,16 @@ public class RequestHandler {
         DatabaseMetaData metaData = link.getMetaData();
         String schemaPattern = getCurrentSchema();
         String primaryKey;
-        try (ResultSet rs = metaData.getPrimaryKeys(null, schemaPattern, table)) {
+        try (ResultSet rs = metaData.getPrimaryKeys(null, schemaPattern, config.isOracle() ? table.toUpperCase() : table)) {
             primaryKey = null;
             while (rs.next()) {
-                if (table.equals(rs.getString("TABLE_NAME"))) {
-                    primaryKey = rs.getString("COLUMN_NAME");
+                if (table.equalsIgnoreCase(rs.getString("TABLE_NAME"))) {
+                    primaryKey = getFullColumnName(table, rs.getString("COLUMN_NAME"));
                     break;
                 }
             }
         }
-        return primaryKey == null ? null : String.format("%s.%s", table, primaryKey);
+        return primaryKey;
     }
 
     private Map<String, Set<String>> parseTableColumns(HttpServletRequest request) throws ClassNotFoundException {
@@ -341,7 +339,7 @@ public class RequestHandler {
         if (columnsParam != null) {
             final String[] columnsArray = columnsParam.split(",");
             for (String column : columnsArray) {
-                column = nativeColumnName(column);
+                column = column;
                 if (column.contains(".")) {
                     final String tableName = getTableName(column);
                     String colName = column.substring(tableName.length() + 1);
@@ -369,7 +367,7 @@ public class RequestHandler {
         if (request.getParameter("exclude") != null) {
             String[] excludedColumns = request.getParameter("exclude").split(",");
             for (String excludedColumn : excludedColumns) {
-                excludedColumn = nativeColumnName(excludedColumn);
+                excludedColumn = excludedColumn;
                 if (excludedColumn.contains(".")) {
                     final String tableName = getTableName(excludedColumn);
                     columnsMap.get(tableName).remove(excludedColumn);
@@ -380,7 +378,7 @@ public class RequestHandler {
         }
         //apply columnAuthorizer
         for (String table : columnsMap.keySet()) {
-            for (Iterator<String> iterator = columnsMap.get(table).iterator(); iterator.hasNext();) {
+            for (Iterator<String> iterator = columnsMap.get(table).iterator(); iterator.hasNext(); ) {
                 String column = iterator.next();
                 final boolean isAuthorized
                         = config.columnAuthorizer(action, databaseName, table, column.substring(table.length() + 1));
@@ -392,8 +390,8 @@ public class RequestHandler {
         return columnsMap;
     }
 
-    private String nativeTableName(String tableName){
-        if(config.isOracle()) tableName = tableName.toUpperCase();
+    private String nativeTableName(String tableName) {
+//        if(config.isOracle()) tableName = tableName.toUpperCase();
         return tableName;
     }
 
@@ -418,6 +416,9 @@ public class RequestHandler {
     }
 
     private String getFullColumnName(String table, String column) {
+        if (config.isOracle()) {
+            column = column.toLowerCase();
+        }
         return String.format("%s.%s", table, column);
     }
 
@@ -448,7 +449,7 @@ public class RequestHandler {
         return columns;
     }
 
-    private boolean applyFilters(SQL sql, String table, String ... ids) {
+    private boolean applyFilters(SQL sql, String table, String... ids) {
         if (isCreateAction()) {
             return false;
         }
@@ -523,7 +524,7 @@ public class RequestHandler {
             int pages = Integer.valueOf(split[0]);
             pages = pages > 0 ? pages - 1 : 0;
 
-            int length = split.length==2 ? Integer.valueOf(split[1]) : 20;
+            int length = split.length == 2 ? Integer.valueOf(split[1]) : 20;
             int limit = length;
             int offset = pages * length;
             final boolean msSQL = config.isMsSQL();
@@ -531,7 +532,7 @@ public class RequestHandler {
             if (!msSQL && !oracle) {
                 sql.LIMIT(limit);
             }
-            if(!oracle) {
+            if (!oracle) {
                 sql.OFFSET(offset);
             }
             if (msSQL) {
@@ -539,14 +540,14 @@ public class RequestHandler {
                 sql.keyword(String.format("FETCH NEXT %d ROWS ONLY", limit));
             }
 
-            if(oracle){
+            if (oracle) {
                 SQL sqlRowNum = SELECT("rownum as rownumid", "t.*")
                         .FROM(sql).keyword("t");
 
                 SQL sqlFilter = SELECT("*").FROM(sqlRowNum);
-                int begin = offset+1;
+                int begin = offset + 1;
                 int end = limit + offset;
-                sqlFilter.keyword(String.format("WHERE rownumid BETWEEN %d AND %d",begin,end));
+                sqlFilter.keyword(String.format("WHERE rownumid BETWEEN %d AND %d", begin, end));
                 map.put("sql", sqlFilter);
             }
         }
@@ -673,12 +674,12 @@ public class RequestHandler {
     }
 
     /**
-     * SMALLINT SIGNED
-     * INT UNSIGNED
-     * @param type
-     * @return
+     * Check for unsigned types
+     *
+     * @param type SQL type
+     * @return true if unsigned
      */
-    private boolean isUnsignedType(String type){
+    private boolean isUnsignedType(String type) {
         return type.toUpperCase().endsWith(" UNSIGNED");
     }
 
@@ -697,7 +698,7 @@ public class RequestHandler {
             type = BINARY;
         } else if (isTimeColumn(fullName, typeMap)) {
             type = TIME;
-        } else if( isUnsignedType(type) ) {
+        } else if (isUnsignedType(type)) {
             type = type.split(" ")[0];
         }
 
@@ -706,10 +707,18 @@ public class RequestHandler {
                 value = rs.getString(colName.replace(".", "_"));
                 break;
             case "MDSYS.SDO_GEOMETRY":
+                //todo implement Oracle spatial object conversion to text
+                //NOTE: not possible for Oracle XE - https://stackoverflow.com/questions/44832223/oracle-converting-sdo-geometry-to-wkt
                 value = rs.getString(colName);
                 break;
             case "JSON":
-                value = gson.fromJson(rs.getString(colName), JsonElement.class);
+            case "CLOB":
+                final String strValue = rs.getString(colName);
+                try {
+                    value = gson.fromJson(strValue, JsonElement.class);
+                } catch (JsonParseException ignored) {
+                    value = strValue;       //non-JSON content returned as String
+                }
                 break;
             case "XML":
                 Document doc;
@@ -727,7 +736,14 @@ public class RequestHandler {
             case "VARCHAR2":
             case "NVARCHAR":
             case "LONGVARCHAR":
+            case "NUMBER":          //Oracle's mixed type
+            case "DECIMAL":         //this type is included as string in tests
+            case "NUMERIC":         //this type is included as string in tests
                 value = rs.getString(colName);
+                if (config.isOracle() && "NUMBER".equals(type) && value != null && ((String) value).indexOf('.') < 0) {
+                    //special case: Oracle's integer values
+                    value = rs.getLong(colName);
+                }
                 break;
 //            case "NUMERIC":         //this type is included as string in tests
 //                value = new BigDecimal(rs.getString(colName));
@@ -749,8 +765,6 @@ public class RequestHandler {
                 value = rs.getLong(colName);
                 break;
             case "REAL":
-            case "DECIMAL":
-            case "NUMERIC":         //this type is included as string in tests
                 if (rs.getString(colName).contains(".")) {
                     value = rs.getFloat(colName);
                 } else {
@@ -760,7 +774,7 @@ public class RequestHandler {
             case "FLOAT":
             case "DOUBLE":
             case "DOUBLE PRECISION":
-            case "NUMBER":
+//            case "NUMBER":
                 value = rs.getDouble(colName);
                 break;
             case BINARY:
@@ -770,11 +784,6 @@ public class RequestHandler {
             case TIME:
                 final String ts = rs.getString(colName);
                 value = ts == null ? null : ts.substring(0, 19);      //treat all date types as String
-                break;
-            case "CLOB":
-                Clob clob = rs.getClob(colName);
-                // materialize CLOB onto client
-                value = clob.getSubString(1, (int) clob.length());
                 break;
             default:
                 throw new SQLException("Type not implemented: " + type);
@@ -835,10 +844,10 @@ public class RequestHandler {
         PreparedStatement statement;
         if (isReadOnly() && config.isPSQL()) {
             statement = link.prepareStatement(breakdown.getSql());
-        } else if(config.isOracle() ){
-            String [] pks = {};
-            if(this.idColumn != null) {
-                pks = new String[]{ this.idColumn.split("\\.")[1] };
+        } else if (config.isOracle()) {
+            String[] pks = {};
+            if (this.idColumn != null) {
+                pks = new String[]{this.idColumn.split("\\.")[1]};
             }
             statement = link.prepareStatement(breakdown.getSql(), pks);
         } else {
@@ -864,16 +873,10 @@ public class RequestHandler {
             }
             convertedList.add(converted);
         }
-        debugSQL(breakdown, convertedList);
-        LOGR.info(String.format("%s with params: %s", breakdown.getSql(), gson.toJson(convertedList)));
+        if (DEBUG_SQL)
+            System.out.println(String.format("%s with params: %s", breakdown.getSql(), gson.toJson(convertedList)));
         return statement;
     }
-
-    private void debugSQL(Breakdown breakdown, Object parameters){
-        if(DEBUG_SQL)
-        System.out.format("%s\n%s\n\n", breakdown.getSql(), parameters);
-    }
-
 
     private SQLXML getSqlxmlObject(Object converted) throws SQLException {
         final SQLXML sqlxml = link.createSQLXML();
@@ -937,7 +940,7 @@ public class RequestHandler {
                 if (splitCommands.length < 3) {
                     throw new IllegalArgumentException("Invalid filter: " + filter);
                 }
-                String column = nativeColumnName(splitCommands[0]);
+                String column = splitCommands[0];
                 String parameter = splitCommands[1]; // compare parameter
                 final boolean isGeometryColumn = isGeometryObject(column);
                 int stExpected = 1;
@@ -1058,9 +1061,9 @@ public class RequestHandler {
         }
 
         String valueFormat = "ST_GeomFromText('%s')";
-        if(msSQL)
+        if (msSQL)
             valueFormat = "geometry::STGeomFromText('%s',0)";
-        if(oracle)
+        if (oracle)
             valueFormat = "SDO_GEOMETRY('%s')";
 
         final String valueCmd = String.format(valueFormat, value);
@@ -1094,7 +1097,7 @@ public class RequestHandler {
     private void handleRequest(PrintWriter writer) throws SQLException, ClassNotFoundException {
         final List<String> columnsList = getColumnsList(table);
         String[] ids = parameters.get(ID_KEY);
-        Map<String,Object> input = new  LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        Map<String, Object> input = new LinkedHashMap<>();
         List<SQL> batch = new ArrayList<>();
         SQL sql = null;
         if (!parameters.isEmpty() && !isJsonContent) {
@@ -1178,7 +1181,7 @@ public class RequestHandler {
                     link.commit();
                     writer.write(results.size() == 1 ? gson.toJson(results.get(0)) : gson.toJson(results));
                 } catch (SQLException ex) {
-                    LOGR.error(ex.getLocalizedMessage());
+                    LOGR.log(Level.FINEST, ex.getMessage(), ex);
                     link.rollback();
                     if (isCreateAction()) {
                         writer.write("null");
@@ -1192,7 +1195,7 @@ public class RequestHandler {
         }
     }
 
-    private void doReadonlyActions(PrintWriter writer, List<String> columnsList, String ... ids) throws SQLException, ClassNotFoundException {
+    private void doReadonlyActions(PrintWriter writer, List<String> columnsList, String... ids) throws SQLException, ClassNotFoundException {
         Map<String, TableMeta> tableMeta = getTableMetaMap();
         SQL sql = prepareSql(columnsList);
         Map<String, Set<Object>> collectIds = new HashMap<>();
@@ -1213,8 +1216,8 @@ public class RequestHandler {
         Integer resultCount = null;
         if (action == LIST) {
             Map map = applyPaging(sql);
-            resultCount = (Integer)map.get("resultCount");
-            sql = (SQL)map.get("sql");
+            resultCount = (Integer) map.get("resultCount");
+            sql = (SQL) map.get("sql");
         }
         applyTenancyFilter(hasFilters, sql);
         final List<String> columnList = getColumnsList(table);
@@ -1255,14 +1258,14 @@ public class RequestHandler {
      * Searches for relations between tables and removes related from include
      * list. Feeds collectIds with exported primary keys
      *
-     * @param tableMeta table columns metadata map
+     * @param tableMeta  table columns metadata map
      * @param collectIds map with sets of collected ids
      * @throws SQLException
      */
     private void findTableRelations(Map<String, TableMeta> tableMeta, Map<String, Set<Object>> collectIds)
             throws ClassNotFoundException {
         if (!includeTables.isEmpty()) {
-            for (Iterator<String> iterator = includeTables.iterator(); iterator.hasNext();) {
+            for (Iterator<String> iterator = includeTables.iterator(); iterator.hasNext(); ) {
                 String includeTable = iterator.next();
                 TableMeta cTable = tableMeta.get(includeTable);
                 TableMeta topTable = tableMeta.get(table);
@@ -1329,7 +1332,7 @@ public class RequestHandler {
     }
 
     private void streamRecords(PrintWriter writer, List<String> columnsList, Map<String, Set<Object>> collectIds,
-            ResultSet rs, Integer resultCount, TableMeta tableMeta) throws SQLException {
+                               ResultSet rs, Integer resultCount, TableMeta tableMeta) throws SQLException {
         String relations = tableMeta.getRelationsJson();
         writer.write(String.format("\"%s\":{%s\"columns\":%s,\"records\":[", tableMeta.getName(),
                 relations,
@@ -1359,8 +1362,8 @@ public class RequestHandler {
 
     public String getCurrentSchema() throws SQLException {
         String schemaPattern = null;
-        if(config.isOracle()) schemaPattern = this.link.getMetaData().getUserName();
-        if(config.isMsSQL()) schemaPattern = "dbo";
+        if (config.isOracle()) schemaPattern = this.link.getMetaData().getUserName();
+        if (config.isMsSQL()) schemaPattern = "dbo";
         return schemaPattern;
     }
 
@@ -1384,23 +1387,24 @@ public class RequestHandler {
         try (ResultSet tables = md.getTables(databaseName, schemaPattern,
                 "%", new String[]{"TABLE", "VIEW"})) {
             while (tables.next()) {
-                final String table = tables.getString("TABLE_NAME");
+                final String jdbcTableName = tables.getString("TABLE_NAME");
+                final String table = jdbcTableName.toLowerCase();
                 if (!tablesMap.containsKey(table)) {
                     tablesMap.put(table, new TableMeta(table));
                 }
-                try (ResultSet rs = md.getImportedKeys(null, schemaPattern, table)) {
+                try (ResultSet rs = md.getImportedKeys(null, schemaPattern, jdbcTableName)) {
                     while (rs.next()) {
-                        final String pkTable = rs.getString("PKTABLE_NAME");
-                        final String pkColumn = rs.getString("PKCOLUMN_NAME");
-                        final String fkTable = rs.getString("FKTABLE_NAME");
-                        final String fkColumn = rs.getString("FKCOLUMN_NAME");
+                        final String pkTable = rs.getString("PKTABLE_NAME").toLowerCase();
+                        final String pkColumn = rs.getString("PKCOLUMN_NAME").toLowerCase();
+                        final String fkTable = rs.getString("FKTABLE_NAME").toLowerCase();
+                        final String fkColumn = rs.getString("FKCOLUMN_NAME").toLowerCase();
                         tablesMap.get(table).addForeignKeys(pkTable, pkColumn, fkTable, fkColumn);
                     }
                 }
-                try (ResultSet rs = md.getPrimaryKeys(null, schemaPattern, table)) {
+                try (ResultSet rs = md.getPrimaryKeys(null, schemaPattern, jdbcTableName)) {
                     if (rs.next()) {
                         final String column = rs.getString("COLUMN_NAME");
-                        tablesMap.get(table).setPrimaryKey(column);
+                        tablesMap.get(table).setPrimaryKey(column.toLowerCase());
                     }
                 }
             }
@@ -1452,21 +1456,15 @@ public class RequestHandler {
         return sql;
     }
 
-    private String nativeColumnName(String columnName){
-        if ( config.isOracle() ) columnName = columnName.toUpperCase();
-        return columnName;
-    }
-
     private String[] getColumnsArray(List<String> columnsList) {
         String[] result = new String[columnsList.size()];
         for (int i = 0; i < result.length; i++) {
-            String column = nativeColumnName( columnsList.get(i) );
+            String column = columnsList.get(i);
             if (isGeometryObject(column)) {
                 //
                 if (config.isMsSQL()) {
                     result[i] = String.format("%s.STAsText() as %s", column, column.replace(".", "_"));
-                } else if(config.isOracle()){
-//                    result[i] = String.format("ST_asText(%s) as %s", column, column.replace(".", "_"));
+                } else if (config.isOracle()) {
                     result[i] = column;
                 } else {
                     result[i] = String.format("ST_asText(%s) as %s", column, column.replace(".", "_"));
@@ -1520,7 +1518,7 @@ public class RequestHandler {
                     if (config.isMsSQL()) {
                         sql.FIELD(entry.getKey()).EQUAL().keyword("geometry::STGeomFromText")
                                 .openParen().VALUE(entry.getValue()).comma().VALUE(0).closeParen();
-                    } else if (config.isOracle()){
+                    } else if (config.isOracle()) {
                         sql.FIELD(entry.getKey()).EQUAL().keyword("SDO_GEOMETRY").openParen().VALUE(entry.getValue()).closeParen();
                     } else {
                         sql.FIELD(entry.getKey()).EQUAL().keyword("ST_GeomFromText").openParen().VALUE(entry.getValue()).closeParen();
@@ -1549,9 +1547,8 @@ public class RequestHandler {
         return isTime;
     }
 
-    private LinkedTreeMap<String, Object> processRow(Map<String, Object> input, Map<String, String> typeMap) {
-//        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
-        LinkedTreeMap<String, Object> values = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
+    private LinkedHashMap<String, Object> processRow(Map<String, Object> input, Map<String, String> typeMap) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         for (String key : input.keySet()) {
             Object value;
             //special case
@@ -1569,7 +1566,7 @@ public class RequestHandler {
                 throw new NumberFormatException((String) validatorResult);
             }
             //special case: Postgres
-            if (isTimeColumn(key, typeMap) && (config.isPSQL() || config.isOracle()) ) {
+            if (isTimeColumn(key, typeMap) && (config.isPSQL() || config.isOracle())) {
                 final String strValue = (String) value;
                 try {
                     if (strValue.matches("\\d{4}-\\d\\d-\\d\\d")) {
@@ -1625,7 +1622,7 @@ public class RequestHandler {
         final String valueString = typeMap.get(key).toUpperCase();
         switch (valueString) {
             case "NUMERIC":
-//                case "DECIMAL":
+            case "DECIMAL":
             case "BIT":
             case "TINYINT":
             case "SMALLINT":
