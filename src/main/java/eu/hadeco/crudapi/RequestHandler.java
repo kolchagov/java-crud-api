@@ -18,7 +18,6 @@ package eu.hadeco.crudapi;
 
 import android.util.Base64;
 import com.google.gson.*;
-import com.google.gson.internal.LinkedTreeMap;
 import com.ivanceras.fluent.sql.Breakdown;
 import com.ivanceras.fluent.sql.SQL;
 import net.sf.json.JSON;
@@ -62,7 +61,7 @@ public class RequestHandler {
         gsonBuilder.registerTypeAdapter(Double.class, new JsonSerializer<Double>() {
             @Override
             public JsonElement serialize(Double originalValue, Type typeOf, JsonSerializationContext context) {
-                //fix Gcon's numeric format output
+                //fix Gson's numeric format output
                 if (originalValue == originalValue.longValue()) {
                     return new JsonPrimitive(originalValue.longValue());
                 }
@@ -90,6 +89,7 @@ public class RequestHandler {
     private final Map<String, Set<String>> columns;
     private final String idColumn, databaseName;
     private final Map<String, List<String>> orderMap;
+    private final Map<String, TableMeta> tableMetaMap;
     private Actions action;
     private JsonElement root;
     private boolean withTransform;
@@ -125,9 +125,11 @@ public class RequestHandler {
         orderMap = parseOrder(tableName);
         final String transform = req.getParameter("transform");
         withTransform = transform == null || "1".equals(transform);
-        //        if(config.isOracle()) tableName = tableName.toUpperCase();
-        tableName = tableName;
         this.table = tableName;
+        this.tableMetaMap = getTableMetaMap();
+        if(!tableMetaMap.containsKey(tableName)) {
+            throw new ClassNotFoundException("entity");
+        }
         this.action = getAction(req.getMethod(), parameters.containsKey(ID_KEY));
         if (!config.tableAuthorizer(action, databaseName, tableName)) {
             throw new ClassNotFoundException("entity");
@@ -135,7 +137,7 @@ public class RequestHandler {
         this.typeMap = getColumnTypesMap(tableName);
         this.includeTables = applyInclude();
         //add non-prefixed columns to process input
-        this.inputTypeMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        this.inputTypeMap = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : typeMap.entrySet()) {
             if (entry.getKey().startsWith(String.format("%s.", tableName))) {
                 inputTypeMap.put(entry.getKey().substring(tableName.length() + 1), entry.getValue());
@@ -294,7 +296,6 @@ public class RequestHandler {
                 }
                 final String columnName = rsMeta.getColumnName(i + 1);
                 typeMap.put(getFullColumnName(table, columnName), columnTypeName);
-
             }
         } catch (SQLException ex) {
             throw new ClassNotFoundException("entity");
@@ -307,8 +308,11 @@ public class RequestHandler {
         List<String> includedList = new ArrayList<>();
         if (included != null) {
             for (String includedTable : included.split(",")) {
-                //        if(config.isOracle()) tableName = tableName.toUpperCase();
-                includedTable = includedTable;
+                //uncomment the following line to enable case-insensitive match of included tables
+                //includedTable = getRealTableName(includedTable);
+                if (!tableMetaMap.containsKey(includedTable)) {
+                    throw new ClassNotFoundException(String.format("entity: %s", includedTable));
+                }
                 if (!includedList.contains(includedTable)) {
                     includedList.add(includedTable);
                     final Map<String, String> columnTypesMap = getColumnTypesMap(includedTable);
@@ -318,6 +322,29 @@ public class RequestHandler {
         }
         return includedList;
     }
+
+    /**
+     * Retrieves real table name from DB (uncomment to allow case-insensitive match of included tables)
+     */
+//    private String getRealTableName(String includedTable) {
+//        if(config.isOracle()) {
+//            includedTable = getNativeCaseName(includedTable);
+//        } else {
+//            try (Connection conn = config.getConnection()) {
+//                final Statement stmt = conn.createStatement();
+//                final ResultSet resultSet = stmt.executeQuery(String.format("SELECT * from %s where 0=1", includedTable));
+//                final ResultSetMetaData metaData = resultSet.getMetaData();
+//                if (metaData.getColumnCount() > 0) {
+//                   final String realName = metaData.getTableName(1);
+//                   if(!includedTable.equals(realName) && includedTable.equalsIgnoreCase(realName))
+//                       includedTable = realName;
+//                }
+//            } catch (SQLException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//        return includedTable;
+//    }
 
     private String getPrimaryKey(String table) throws SQLException {
         DatabaseMetaData metaData = link.getMetaData();
@@ -341,7 +368,6 @@ public class RequestHandler {
         if (columnsParam != null) {
             final String[] columnsArray = columnsParam.split(",");
             for (String column : columnsArray) {
-                column = column;
                 if (column.contains(".")) {
                     final String tableName = getTableName(column);
                     String colName = column.substring(tableName.length() + 1);
@@ -369,7 +395,6 @@ public class RequestHandler {
         if (request.getParameter("exclude") != null) {
             String[] excludedColumns = request.getParameter("exclude").split(",");
             for (String excludedColumn : excludedColumns) {
-                excludedColumn = excludedColumn;
                 if (excludedColumn.contains(".")) {
                     final String tableName = getTableName(excludedColumn);
                     columnsMap.get(tableName).remove(excludedColumn);
@@ -397,8 +422,7 @@ public class RequestHandler {
         if (idx < 0) {
             throw new IllegalArgumentException("Invalid column name");
         }
-        String tableName = fqColumnName.substring(0, idx);
-        return tableName;
+        return fqColumnName.substring(0, idx);
     }
 
     private void putColumns(Map<String, Set<String>> columnsMap, String tableName, Collection<String> fqColumnList) {
@@ -509,7 +533,7 @@ public class RequestHandler {
     }
 
     private Map applyPaging(SQL sql) throws SQLException {
-        Map map = new HashMap<>();
+        Map<String, Object> map = new HashMap<>();
         map.put("sql", sql);
         String pageParam = req.getParameter("page");
         if (pageParam != null) {
@@ -526,9 +550,8 @@ public class RequestHandler {
             int pages = Integer.valueOf(split[0]);
             pages = pages > 0 ? pages - 1 : 0;
 
-            int length = split.length == 2 ? Integer.valueOf(split[1]) : 20;
-            int limit = length;
-            int offset = pages * length;
+            int limit = split.length == 2 ? Integer.valueOf(split[1]) : 20;
+            int offset = pages * limit;
             final boolean msSQL = config.isMsSQL();
             final boolean oracle = config.isOracle();
             if (!msSQL && !oracle) {
@@ -577,11 +600,9 @@ public class RequestHandler {
     private LinkedList<Map<String, Object>> processJsonObjectResults(
             ResultSet rs, PrintWriter writer, Collection<String> columns, TableMeta tableMeta,
             Map<String, Set<Object>> collectIds, Map.Entry<String, String> relation) throws SQLException {
-        List<String> columnIds = new ArrayList();
         for (String key : tableMeta.getRelatedTableKeys()) {
             if (!collectIds.containsKey(key)) {
                 collectIds.put(key, new HashSet<>());
-                columnIds.add(key);
             }
         }
         final LinkedList<Map<String, Object>> records = new LinkedList<>();
@@ -1199,21 +1220,20 @@ public class RequestHandler {
     }
 
     private void doReadonlyActions(PrintWriter writer, List<String> columnsList, String... ids) throws SQLException, ClassNotFoundException {
-        Map<String, TableMeta> tableMeta = getTableMetaMap();
         SQL sql = prepareSql(columnsList);
         Map<String, Set<Object>> collectIds = new HashMap<>();
         final boolean hasIncludedTables = !includeTables.isEmpty();
-        findTableRelations(tableMeta, collectIds);
+        findTableRelations(tableMetaMap, collectIds);
         //add primary + foreign keys from related tables
         for (String fqColumnName : collectIds.keySet()) {
             final String tableName = getTableName(fqColumnName);
-            putColumns(columns, tableName, tableMeta.get(tableName).getPrimaryKey());
+            putColumns(columns, tableName, tableMetaMap.get(tableName).getPrimaryKey());
             putColumns(columns, tableName, fqColumnName);
         }
         for (String t : includeTables) {
             //add unrelated tables to the output
-            final TableMeta mt = tableMeta.get(t);
-            tableMeta.get(table).addReferencedTable(mt);
+            final TableMeta mt = tableMetaMap.get(t);
+            tableMetaMap.get(table).addReferencedTable(mt);
         }
         boolean hasFilters = applyFilters(sql, table, ids);
         Integer resultCount = null;
@@ -1228,7 +1248,7 @@ public class RequestHandler {
             String preamble = parameters.get(ID_KEY).length > 1 ? "[" : "";
             try (ResultSet rs = prepareStatement(sql).executeQuery()) {
                 writer.write(preamble);
-                streamJsonObjectResults(rs, writer, tableMeta.get(table));
+                streamJsonObjectResults(rs, writer, tableMetaMap.get(table));
             }
             if (!preamble.isEmpty()) {
                 writer.write("]");
@@ -1237,17 +1257,17 @@ public class RequestHandler {
             try (ResultSet rs = prepareStatement(sql).executeQuery()) {
                 writer.write("{");
                 if (hasIncludedTables) {
-                    processJsonObjectResults(rs, writer, columnList, tableMeta.get(table), collectIds, null);
+                    processJsonObjectResults(rs, writer, columnList, tableMetaMap.get(table), collectIds, null);
                 } else {
                     writer.write(String.format("\"%s\":", table));
                     writer.write("[");
-                    streamJsonObjectResults(rs, writer, tableMeta.get(table));
+                    streamJsonObjectResults(rs, writer, tableMetaMap.get(table));
                     writer.write("]");
                 }
             }
             writer.write("}");
         } else {
-            TableMeta topTable = tableMeta.get(table);
+            TableMeta topTable = tableMetaMap.get(table);
             try (ResultSet rs = prepareStatement(sql).executeQuery()) {
                 writer.write("{");
                 streamRecords(writer, columnsList, collectIds, rs, resultCount, topTable);
@@ -1363,7 +1383,7 @@ public class RequestHandler {
         writer.write("}");
     }
 
-    public String getCurrentSchema() throws SQLException {
+    private String getCurrentSchema() throws SQLException {
         String schemaPattern = null;
         if (config.isOracle()) schemaPattern = this.link.getMetaData().getUserName();
         if (config.isMsSQL()) schemaPattern = "dbo";
@@ -1382,7 +1402,7 @@ public class RequestHandler {
         if (tablesMap != null) {
             return tablesMap;
         }
-        tablesMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        tablesMap = new LinkedHashMap<>();
 
         DatabaseMetaData md = link.getMetaData();
         String schemaPattern = getCurrentSchema();

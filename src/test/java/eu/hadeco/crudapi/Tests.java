@@ -59,6 +59,13 @@ public abstract class Tests extends TestBase {
     }
 
     @Test
+    public void testMissingEntity() {
+        TestApi test = new TestApi(this);
+        test.get("/Posts");
+        test.expect(false, "Not found (entity)");
+    }
+
+    @Test
     public void testListPosts() {
         TestApi test = new TestApi(this);
         test.get("/posts");
