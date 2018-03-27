@@ -125,7 +125,8 @@ public class RequestHandler {
         orderMap = parseOrder(tableName);
         final String transform = req.getParameter("transform");
         withTransform = transform == null || "1".equals(transform);
-        tableName = nativeTableName(tableName);
+        //        if(config.isOracle()) tableName = tableName.toUpperCase();
+        tableName = tableName;
         this.table = tableName;
         this.action = getAction(req.getMethod(), parameters.containsKey(ID_KEY));
         if (!config.tableAuthorizer(action, databaseName, tableName)) {
@@ -306,7 +307,8 @@ public class RequestHandler {
         List<String> includedList = new ArrayList<>();
         if (included != null) {
             for (String includedTable : included.split(",")) {
-                includedTable = nativeTableName(includedTable);
+                //        if(config.isOracle()) tableName = tableName.toUpperCase();
+                includedTable = includedTable;
                 if (!includedList.contains(includedTable)) {
                     includedList.add(includedTable);
                     final Map<String, String> columnTypesMap = getColumnTypesMap(includedTable);
@@ -390,18 +392,13 @@ public class RequestHandler {
         return columnsMap;
     }
 
-    private String nativeTableName(String tableName) {
-//        if(config.isOracle()) tableName = tableName.toUpperCase();
-        return tableName;
-    }
-
     private String getTableName(String fqColumnName) {
         final int idx = fqColumnName.lastIndexOf(".");
         if (idx < 0) {
             throw new IllegalArgumentException("Invalid column name");
         }
         String tableName = fqColumnName.substring(0, idx);
-        return nativeTableName(tableName);
+        return tableName;
     }
 
     private void putColumns(Map<String, Set<String>> columnsMap, String tableName, Collection<String> fqColumnList) {
@@ -415,11 +412,16 @@ public class RequestHandler {
         putColumns(columnsMap, tableName, Arrays.asList(fqColumnNames));
     }
 
-    private String getFullColumnName(String table, String column) {
+    private String getNativeCaseName(String column) {
         if (config.isOracle()) {
+            //Oracle metadata is upper-case by default, convert it to lowercase
             column = column.toLowerCase();
         }
-        return String.format("%s.%s", table, column);
+        return column;
+    }
+
+    private String getFullColumnName(String table, String column) {
+        return String.format("%s.%s", table, getNativeCaseName(column));
     }
 
     private boolean isCreateAction() {
@@ -693,7 +695,8 @@ public class RequestHandler {
             colName = fullName;
         }
         //POSTGRES JDBC driver returns lower-cased types
-        String type = typeMap.get(fullName).toUpperCase();
+        String type = typeMap.get(fullName);
+        type = type.toUpperCase();
         if (isBinaryColumn(fullName, typeMap)) {
             type = BINARY;
         } else if (isTimeColumn(fullName, typeMap)) {
@@ -1388,23 +1391,23 @@ public class RequestHandler {
                 "%", new String[]{"TABLE", "VIEW"})) {
             while (tables.next()) {
                 final String jdbcTableName = tables.getString("TABLE_NAME");
-                final String table = jdbcTableName.toLowerCase();
+                final String table = getNativeCaseName(jdbcTableName);
                 if (!tablesMap.containsKey(table)) {
                     tablesMap.put(table, new TableMeta(table));
                 }
                 try (ResultSet rs = md.getImportedKeys(null, schemaPattern, jdbcTableName)) {
                     while (rs.next()) {
-                        final String pkTable = rs.getString("PKTABLE_NAME").toLowerCase();
-                        final String pkColumn = rs.getString("PKCOLUMN_NAME").toLowerCase();
-                        final String fkTable = rs.getString("FKTABLE_NAME").toLowerCase();
-                        final String fkColumn = rs.getString("FKCOLUMN_NAME").toLowerCase();
+                        final String pkTable = getNativeCaseName(rs.getString("PKTABLE_NAME"));
+                        final String pkColumn = getNativeCaseName(rs.getString("PKCOLUMN_NAME"));
+                        final String fkTable = getNativeCaseName(rs.getString("FKTABLE_NAME"));
+                        final String fkColumn = getNativeCaseName(rs.getString("FKCOLUMN_NAME"));
                         tablesMap.get(table).addForeignKeys(pkTable, pkColumn, fkTable, fkColumn);
                     }
                 }
                 try (ResultSet rs = md.getPrimaryKeys(null, schemaPattern, jdbcTableName)) {
                     if (rs.next()) {
                         final String column = rs.getString("COLUMN_NAME");
-                        tablesMap.get(table).setPrimaryKey(column.toLowerCase());
+                        tablesMap.get(table).setPrimaryKey(getNativeCaseName(column));
                     }
                 }
             }
