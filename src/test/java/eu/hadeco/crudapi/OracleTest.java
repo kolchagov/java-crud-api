@@ -32,8 +32,8 @@ public class OracleTest extends Tests {
 
     static {
         //configure test parameters here
-        USER = "crudtest";
-        PASS = "crudtest";
+        USER = "";
+        PASS = "";
         DB_NAME = "xe";
         SERVER_NAME = "localhost";
         SERVER_CLASS = ApiConfig.ORACLE;

@@ -715,9 +715,27 @@ The following types of 404 'Not found' errors may be reported:
 ## Tests
 Tests are configured in the corresponding child BaseClass classes:
 - MysqlTest
-- SqliteTest
-- SqlServerTest
+```
+ Setup steps:
+  Create user (eg. crudtest) with password,
+  Create database 'crudtest', assign full rights to it for user above
+  Edit MysqlTest.java and configure user, database and host (line 33)
+```
+- SqliteTest - configured to run by default
+- SqlServerTest - follow mysql steps
 - PostgresqlTest
+- Oracle / Oracle XE: enter SQL console and create test user:
+```sql
+ SQL> connect system
+  Enter password: <your setup password here>
+  Connected.
+ SQL> create user crudtest identified by crudtest; 
+  User created.
+ SQL> grant dba to crudtest;
+  Grant succeeded.
+  
+Edit OracleTest.java and configure user, database/SID (Oracle Express can only use 'xe') and host (line 34)
+```
 
 in each test class, you should provide credentials, server and database name.
 Database have to exist in order to perform the tests (it should be created by hand).
