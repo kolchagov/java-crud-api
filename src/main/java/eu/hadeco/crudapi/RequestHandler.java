@@ -933,7 +933,6 @@ public class RequestHandler {
             Object o = convertToObject(breakdown.getParameters()[i]);
             statement.setObject(i + 1, o);
         }
-        LOGR.info(breakdown.getSql());
         try (ResultSet rs = statement.executeQuery()) {
             if (rs.next()) {
                 count = rs.getInt(1);

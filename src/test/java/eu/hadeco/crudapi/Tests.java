@@ -720,4 +720,100 @@ public abstract class Tests extends TestBase {
         test.expect("{\"users\":[{\"id\":1,\"username\":\"user1\"}],\"tags\":[{\"id\":1,\"name\":\"funny\"},{\"id\":2,\"name\":\"important\"}]}");
     }
 
+    public void testAddPostWithLeadingWhitespaceInJSON()
+    {
+        TestApi test = new TestApi(this);
+        test.post("/posts", " \n {\"user_id\":1,\"category_id\":1,\"content\":\"test whitespace\"}   ");
+        test.expect("21");
+        test.get("/posts/21");
+        test.expect("{\"id\":21,\"user_id\":1,\"category_id\":1,\"content\":\"test whitespace\"}");
+    }
+    public void testListPostWithIncludeButNoRecords()
+    {
+        TestApi test = new TestApi(this);
+        test.get("/posts?filter=id,eq,999&include=tags");
+        test.expect("{\"posts\":{\"columns\":[\"id\",\"user_id\",\"category_id\",\"content\"],\"records\":[]},\"post_tags\":{\"relations\":{\"post_id\":\"posts.id\"},\"columns\":[\"id\",\"post_id\",\"tag_id\"],\"records\":[]},\"tags\":{\"relations\":{\"id\":\"post_tags.tag_id\"},\"columns\":[\"id\",\"name\"],\"records\":[]}}");
+    }
+    public void testListUsersExcludeTenancyId()
+    {
+        TestApi test = new TestApi(this);
+        test.get("/users?exclude=id");
+        test.expect("{\"users\":{\"columns\":[\"username\",\"location\"],\"records\":[[\"user1\",\"POINT(30 20)\"]]}}");
+    }
+    public void testListUsersColumnsWithoutTenancyId()
+    {
+        TestApi test = new TestApi(this);
+        test.get("/users?columns=username,location");
+        test.expect("{\"users\":{\"columns\":[\"username\",\"location\"],\"records\":[[\"user1\",\"POINT(30 20)\"]]}}");
+    }
+    public void testTenancyCreateColumns()
+    {
+        // creation should fail, since due to tenancy function it will try to create with id=1, which is a PK and is already taken
+        TestApi test = new TestApi(this);
+        test.post("/users?columns=username,password,location", "{\"username\":\"user3\",\"password\":\"pass3\",\"location\":null}");
+        test.expect("null");
+    }
+    public void testTenancyCreateExclude()
+    {
+        // creation should fail, since due to tenancy function it will try to create with id=1, which is a PK and is already taken
+        TestApi test = new TestApi(this);
+        test.post("/users?exclude=id", "{\"username\":\"user3\",\"password\":\"pass3\",\"location\":null}");
+        test.expect("null");
+    }
+    public void testTenancyListColumns()
+    {
+        // should list only user with id=1 (exactly 1 record)
+        TestApi test = new TestApi(this);
+        test.get("/users?columns=username,location");
+        test.expect("{\"users\":{\"columns\":[\"username\",\"location\"],\"records\":[[\"user1\",null]]}}");
+    }
+    public void testTenancyListExclude()
+    {
+        // should list only user with id=1 (exactly 1 record)
+        TestApi test = new TestApi(this);
+        test.get("/users?exclude=id");
+        test.expect("{\"users\":{\"columns\":[\"username\",\"location\"],\"records\":[[\"user1\",null]]}}");
+    }
+    public void testTenancyReadColumns()
+    {
+        // should fail, since due to tenancy function user id=2 is unvailable to us
+        TestApi test = new TestApi(this);
+        test.get("/users/2?columns=username,location");
+        test.expect(false, "Not found (object)");
+    }
+    public void testTenancyReadExclude()
+    {
+        // should fail, since due to tenancy function user id=2 is unvailable to us
+        TestApi test = new TestApi(this);
+        test.get("/users/2?exclude=id");
+        test.expect(false, "Not found (object)");
+    }
+    public void testTenancyUpdateColumns()
+    {
+        // should fail, since due to tenancy function user id=2 is unvailable to us
+        TestApi test = new TestApi(this);
+        test.put("/users/2?columns=location", "{\"location\":\"somelocation\"}");
+        test.expect("0");
+    }
+    public void testTenancyUpdateExclude()
+    {
+        // should fail, since due to tenancy function user id=2 is unvailable to us
+        TestApi test = new TestApi(this);
+        test.put("/users/2?exclude=id", "{\"location\":\"somelocation\"}");
+        test.expect("0");
+    }
+    public void testTenancyDeleteColumns()
+    {
+        // should fail, since due to tenancy function user id=2 is unvailable to us
+        TestApi test = new TestApi(this);
+        test.delete("/users/2?columns=location");
+        test.expect("0");
+    }
+    public void testTenancyDeleteExclude()
+    {
+        // should fail, since due to tenancy function user id=2 is unvailable to us
+        TestApi test = new TestApi(this);
+        test.delete("/users/2?exclude=id");
+        test.expect("0");
+    }
 }
