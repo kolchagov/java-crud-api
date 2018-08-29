@@ -54,6 +54,7 @@ public class RequestHandler {
     private static final java.util.logging.Logger LOGR = java.util.logging.Logger.getLogger(RequestHandler.class.getName());
     private static final String ID_KEY = "!_id_!";
     private static final Gson gson;
+    //Change this to true during development - turns on sql exceptions logging
     private static final boolean DEBUG_SQL = false;
 
     static {
@@ -127,7 +128,7 @@ public class RequestHandler {
         withTransform = transform == null || "1".equals(transform);
         this.table = tableName;
         this.tableMetaMap = getTableMetaMap();
-        if(!tableMetaMap.containsKey(tableName)) {
+        if (!tableMetaMap.containsKey(tableName)) {
             throw new ClassNotFoundException("entity");
         }
         this.action = getAction(req.getMethod(), parameters.containsKey(ID_KEY));
@@ -345,7 +346,6 @@ public class RequestHandler {
 //        }
 //        return includedTable;
 //    }
-
     private String getPrimaryKey(String table) throws SQLException {
         DatabaseMetaData metaData = link.getMetaData();
         String schemaPattern = getCurrentSchema();
@@ -1204,7 +1204,8 @@ public class RequestHandler {
                     link.commit();
                     writer.write(results.size() == 1 ? gson.toJson(results.get(0)) : gson.toJson(results));
                 } catch (SQLException ex) {
-                    LOGR.log(Level.FINEST, ex.getMessage(), ex);
+                    if (DEBUG_SQL)
+                        LOGR.log(Level.INFO, ex.getMessage(), ex);
                     link.rollback();
                     if (isCreateAction()) {
                         writer.write("null");
@@ -1626,7 +1627,11 @@ public class RequestHandler {
 
     private boolean isBinaryColumn(String key, Map<String, String> typeMap) {
         boolean isBinary = false;
-        final String valueString = typeMap.get(key).toUpperCase();
+        final String dbColumn = typeMap.get(key);
+        if (dbColumn == null) {
+            throw new IllegalArgumentException(String.format("Invalid input column: %s", key));
+        }
+        final String valueString = dbColumn.toUpperCase();
         switch (valueString) {
             case "BINARY":
             case "DATA":
@@ -1676,7 +1681,7 @@ public class RequestHandler {
         return isGeometry;
     }
 
-    enum Actions {
+    public enum Actions {
         LIST, CREATE, READ, UPDATE, DELETE, INCREMENT, HEADERS
     }
 

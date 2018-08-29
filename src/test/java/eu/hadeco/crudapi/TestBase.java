@@ -67,33 +67,33 @@ public abstract class TestBase {
             }
             apiConfig = new ApiConfig(USER, PASS, DB_NAME, SERVER_NAME, SERVER_CLASS) {
                 @Override
-                protected boolean columnAuthorizer(RequestHandler.Actions action, String database, String table, String column) {
+                public boolean columnAuthorizer(RequestHandler.Actions action, String database, String table, String column) {
                     return !("password".equals(column) && RequestHandler.Actions.LIST.equals(action));
                 }
 
                 @Override
-                protected String[] recordFilter(RequestHandler.Actions action, String database, String table) {
+                public String[] recordFilter(RequestHandler.Actions action, String database, String table) {
                     return "posts".equals(table) ? new String[]{"id,neq,13"} : null;
                 }
 
                 @Override
-                protected Object tenancyFunction(RequestHandler.Actions action, String database, String table, String column) {
+                public Object tenancyFunction(RequestHandler.Actions action, String database, String table, String column) {
                     return "users".equals(table) && "id".equals(column) ? 1 : null;
                 }
 
                 @Override
-                protected Object inputSanitizer(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
+                public Object inputSanitizer(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
                     return value instanceof String ? TAG_FILTER.matcher(((String) value)).replaceAll("") : value;
                 }
 
                 @Override
-                protected Object inputValidator(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
+                public Object inputValidator(RequestHandler.Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
 //                    ($column=='category_id' && !is_numeric($value))?'must be numeric':true;
                     return "category_id".equals(column) && !(value instanceof Long) ? "must be numeric" : true;
                 }
 
                 @Override
-                protected RequestHandler.Actions before(RequestHandler.Actions action, String database, String table, String[] ids, Map<String, Object> input) {
+                public RequestHandler.Actions before(RequestHandler.Actions action, String database, String table, String[] ids, Map<String, Object> input) {
                     if ("products".equals(table)) {
                         if (action == RequestHandler.Actions.CREATE) {
                             input.put("created_at", "2013-12-11 10:09:08");

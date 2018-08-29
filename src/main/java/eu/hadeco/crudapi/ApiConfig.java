@@ -14,7 +14,6 @@
  *  https://github.com/ivanceras/fluentsql/blob/master/LICENSE.txt
  *
  */
-
 package eu.hadeco.crudapi;
 
 import com.zaxxer.hikari.HikariConfig;
@@ -30,7 +29,8 @@ import java.util.Properties;
 /**
  * Extend this class to provide customization
  */
-public class ApiConfig {
+public class ApiConfig implements AutoCloseable {
+
     public static final String DERBY = "org.apache.derby.jdbc.ClientDataSource";
     public static final String JAYBIRD = "org.firebirdsql.pool.FBSimpleDataSource";
     public static final String H2 = "org.h2.jdbcx.JdbcDataSource";
@@ -49,7 +49,7 @@ public class ApiConfig {
     public static final String XERIAL = "org.sqlite.SQLiteDataSource";
     public static final String JCONNECT = "com.sybase.jdbc4.jdbc.SybDataSource";
 
-    private static final int CACHE_TO = 1*60 * 1000; //1min
+    private static final int CACHE_TO = 1 * 60 * 1000; //1min
     //contains table metadata map to gain some performance, refreshed every 30s
     private static Map<String, TableMeta> cachedTableMeta = null;
     private static long cacheTimestamp = 0;
@@ -81,7 +81,7 @@ public class ApiConfig {
      * @param serverHostName
      * @param datasourceClassName
      */
-    public  ApiConfig(String user, String password, String databaseName, String portNumber, String serverHostName, String datasourceClassName) {
+    public ApiConfig(String user, String password, String databaseName, String portNumber, String serverHostName, String datasourceClassName) {
         properties = new Properties();
         properties.put("dataSource.user", user);
         properties.put("dataSource.password", password);
@@ -119,20 +119,21 @@ public class ApiConfig {
             properties.put("dataSource.useUnicode", "true");
             properties.put("dataSource.characterEncoding", "utf8");
         }
-        if(isPSQL()) {
+        if (isPSQL()) {
             //allows proper handling of timestamps like "2013-12-11 10:09:08"
             properties.put("dataSource.stringType", "unspecified");
         }
         if (ORACLE.equals(datasourceClassName)) {
             properties.remove("dataSourceClassName");
-            properties.setProperty("DriverClassName","oracle.jdbc.OracleDriver");
+            properties.setProperty("DriverClassName", "oracle.jdbc.OracleDriver");
             String jdbcUrl = String.format("jdbc:oracle:thin:@%s:%d:%s", serverHostName, 1521, databaseName);
-            properties.setProperty("jdbcUrl", jdbcUrl );
+            properties.setProperty("jdbcUrl", jdbcUrl);
         }
         final HikariConfig hikariConfig = new HikariConfig(properties);
 //        hikariConfig.setConnectionTestQuery("SELECT 1");
         //        hikariConfig.setMaximumPoolSize(1); //debug
         dataSource = new HikariDataSource(hikariConfig);
+
     }
 
     /**
@@ -149,6 +150,7 @@ public class ApiConfig {
 
     /**
      * Returns cached tableMeta map but clears the references
+     *
      * @return null if cache is expired or cleared
      */
     public static Map<String, TableMeta> getCachedTableMeta() {
@@ -163,7 +165,9 @@ public class ApiConfig {
     }
 
     /**
-     * Caches tableMeta map - this provides huge performance boost, as reading this data is expensive
+     * Caches tableMeta map - this provides huge performance boost, as reading
+     * this data is expensive
+     *
      * @param cachedTableMeta
      */
     public static void setCachedTableMeta(Map<String, TableMeta> cachedTableMeta) {
@@ -175,7 +179,7 @@ public class ApiConfig {
      * Resets the tableMeta cache.
      */
     public static void clearCachedTableMeta() {
-        cachedTableMeta =null;
+        cachedTableMeta = null;
         cacheTimestamp = 0;
     }
 
@@ -184,89 +188,90 @@ public class ApiConfig {
     }
 
     /**
-     * @param action   root actions: "list" (GET), "create" (POST);
-     *                 ID actions: "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
+     * @param action root actions: "list" (GET), "create" (POST); ID actions:
+     * "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
      * @param database
      * @param table
      * @return
      */
-    boolean tableAuthorizer(Actions action, String database, String table) {
+    public boolean tableAuthorizer(Actions action, String database, String table) {
         return true;
     }
 
     /**
-     * @param action   root actions: "list" (GET), "create" (POST);
-     *                 ID actions: "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
+     * @param action root actions: "list" (GET), "create" (POST); ID actions:
+     * "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
      * @param database
      * @param table
      * @return additional filters to be added (Map column->[filters]) or null
      */
-    String[] recordFilter(Actions action, String database, String table) {
+    public String[] recordFilter(Actions action, String database, String table) {
         return null;
     }
 
     /**
-     * @param action   root actions: "list" (GET), "create" (POST);
-     *                 ID actions: "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
+     * @param action root actions: "list" (GET), "create" (POST); ID actions:
+     * "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
      * @param database
      * @param table
      * @param column
      * @return
      */
-    boolean columnAuthorizer(Actions action, String database, String table, String column) {
+    public boolean columnAuthorizer(Actions action, String database, String table, String column) {
         return true;
     }
 
     /**
-     * @param action   root actions: "list" (GET), "create" (POST);
-     *                 ID actions: "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
+     * @param action root actions: "list" (GET), "create" (POST); ID actions:
+     * "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
      * @param database
      * @param table
      * @param column
      * @return
      */
-    Object tenancyFunction(Actions action, String database, String table, String column) {
+    public Object tenancyFunction(Actions action, String database, String table, String column) {
         return null;
     }
 
     /**
      * Process the input value and returns sanitized
      *
-     * @param action   root actions: "list" (GET), "create" (POST);
-     *                 ID actions: "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
+     * @param action root actions: "list" (GET), "create" (POST); ID actions:
+     * "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
      * @param database
      * @param table
      * @param column
-     * @param type     SQL type as read from JDBC metadata
+     * @param type SQL type as read from JDBC metadata
      * @param value
      * @param context
      * @return sanitized value
      */
-    Object inputSanitizer(Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
+    public Object inputSanitizer(Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
         return value;
     }
 
     /**
-     * Validates the input. Returns true if validation is ok or String REASON for failed validation
+     * Validates the input. Returns true if validation is ok or String REASON
+     * for failed validation
      *
-     * @param action   root actions: "list" (GET), "create" (POST);
-     *                 ID actions: "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
+     * @param action root actions: "list" (GET), "create" (POST); ID actions:
+     * "read" (GET), "update" (PUT), "delete" (DELETE), "increment" (PATCH)
      * @param database
      * @param table
      * @param column
-     * @param type     SQL type as read from JDBC metadata
+     * @param type SQL type as read from JDBC metadata
      * @param value
      * @param context
-     * @return Boolean.true if value is valid or String to be reported to the client
+     * @return Boolean.true if value is valid or String to be reported to the
+     * client
      */
-    Object inputValidator(Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
+    public Object inputValidator(Actions action, String database, String table, String column, String type, Object value, HttpServletRequest context) {
         return true;
     }
 
-
     /**
-     * Can be used to manipulate the action or input map, right before DB operation.
-     * (e.g. soft delete operations)
+     * Can be used to manipulate the action or input map, right before DB
+     * operation. (e.g. soft delete operations)
      *
      * @param action
      * @param database
@@ -274,17 +279,29 @@ public class ApiConfig {
      * @param ids
      * @param input
      */
-    Actions before(Actions action, String database, String table, String[] ids, Map<String, Object> input) {
+    public Actions before(Actions action, String database, String table, String[] ids, Map<String, Object> input) {
         return action;
     }
 
-    public boolean isMsSQL() {
+    public final boolean isMsSQL() {
         return MICROSOFT.equals(properties.get("dataSourceClassName"));
     }
 
-    public boolean isOracle() { return ORACLE.equals(properties.get("dataSourceClassName")) || properties.getProperty("jdbcUrl","").startsWith("jdbc:oracle"); }
+    public final boolean isOracle() {
+        return ORACLE.equals(properties.get("dataSourceClassName")) || properties.getProperty("jdbcUrl", "").startsWith("jdbc:oracle");
+    }
 
-    public boolean isPSQL() {
+    public final boolean isPSQL() {
         return POSTGRESQL.equals(properties.get("dataSourceClassName"));
+    }
+
+    @Override
+    public String toString() {
+        return properties.toString();
+    }
+
+    @Override
+    public final void close() {
+        dataSource.close();
     }
 }

@@ -60,6 +60,7 @@
             <version>2.4</version>
             <classifier>jdk15</classifier>
         </dependency>
+        <!--TODO check if needed-->
         <dependency>
             <groupId>xom</groupId>
             <artifactId>xom</artifactId>
