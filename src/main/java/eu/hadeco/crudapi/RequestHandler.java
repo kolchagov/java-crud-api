@@ -18,20 +18,9 @@ package eu.hadeco.crudapi;
 
 import android.util.Base64;
 import com.google.gson.*;
+import com.google.gson.internal.LinkedTreeMap;
 import com.ivanceras.fluent.sql.Breakdown;
 import com.ivanceras.fluent.sql.SQL;
-import net.sf.json.JSON;
-import net.sf.json.JSONSerializer;
-import net.sf.json.xml.XMLSerializer;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.SAXException;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -40,14 +29,20 @@ import java.sql.*;
 import java.sql.Date;
 import java.util.*;
 import java.util.logging.Level;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import net.sf.json.JSON;
+import net.sf.json.JSONSerializer;
+import net.sf.json.xml.XMLSerializer;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
-import static com.ivanceras.fluent.sql.SQL.Statics.DELETE;
 import static com.ivanceras.fluent.sql.SQL.Statics.*;
-import static com.ivanceras.fluent.sql.SQL.Statics.UPDATE;
-import static eu.hadeco.crudapi.RequestHandler.Actions.CREATE;
-import static eu.hadeco.crudapi.RequestHandler.Actions.DELETE;
 import static eu.hadeco.crudapi.RequestHandler.Actions.*;
-import static eu.hadeco.crudapi.RequestHandler.Actions.UPDATE;
 
 public class RequestHandler {
 
@@ -151,8 +146,8 @@ public class RequestHandler {
     /**
      * Default servlet handler. Use it to handle servlet requests
      *
-     * @param req       servlet request
-     * @param resp      servlet response to handle
+     * @param req servlet request
+     * @param resp servlet response to handle
      * @param apiConfig preconfigured ApiConfig class
      * @throws IOException
      */
@@ -288,7 +283,7 @@ public class RequestHandler {
         Map<String, String> typeMap;
         try (ResultSet rs = link.createStatement().executeQuery(String.format("SELECT * from %s where 0=1", table))) {
             rsMeta = rs.getMetaData();
-            typeMap = new LinkedHashMap<>();
+            typeMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
             for (int i = 0; i < rsMeta.getColumnCount(); i++) {
                 String columnTypeName = rsMeta.getColumnTypeName(i + 1);
                 if ("NULL".equals(columnTypeName)) {
@@ -325,7 +320,8 @@ public class RequestHandler {
     }
 
     /**
-     * Retrieves real table name from DB (uncomment to allow case-insensitive match of included tables)
+     * Retrieves real table name from DB (uncomment to allow case-insensitive
+     * match of included tables)
      */
 //    private String getRealTableName(String includedTable) {
 //        if(config.isOracle()) {
@@ -405,7 +401,7 @@ public class RequestHandler {
         }
         //apply columnAuthorizer
         for (String table : columnsMap.keySet()) {
-            for (Iterator<String> iterator = columnsMap.get(table).iterator(); iterator.hasNext(); ) {
+            for (Iterator<String> iterator = columnsMap.get(table).iterator(); iterator.hasNext();) {
                 String column = iterator.next();
                 final boolean isAuthorized
                         = config.columnAuthorizer(action, databaseName, table, column.substring(table.length() + 1));
@@ -807,7 +803,11 @@ public class RequestHandler {
                 break;
             case TIME:
                 final String ts = rs.getString(colName);
-                value = ts == null ? null : ts.substring(0, 19);      //treat all date types as String
+                if (ts != null && ts.length() > 19) {
+                    value = ts.substring(0, 19);      //treat all date types as String
+                } else {
+                    value = ts;
+                }
                 break;
             default:
                 throw new SQLException("Type not implemented: " + type);
@@ -897,8 +897,9 @@ public class RequestHandler {
             }
             convertedList.add(converted);
         }
-        if (DEBUG_SQL)
+        if (DEBUG_SQL) {
             System.out.println(String.format("%s with params: %s", breakdown.getSql(), gson.toJson(convertedList)));
+        }
         return statement;
     }
 
@@ -964,6 +965,9 @@ public class RequestHandler {
                     throw new IllegalArgumentException("Invalid filter: " + filter);
                 }
                 String column = splitCommands[0];
+                if (!typeMap.containsKey(column)) {
+                    throw new IllegalArgumentException("Invalid column in filter: " + column);
+                }
                 String parameter = splitCommands[1]; // compare parameter
                 final boolean isGeometryColumn = isGeometryObject(column);
                 int stExpected = 1;
@@ -1084,10 +1088,12 @@ public class RequestHandler {
         }
 
         String valueFormat = "ST_GeomFromText('%s')";
-        if (msSQL)
+        if (msSQL) {
             valueFormat = "geometry::STGeomFromText('%s',0)";
-        if (oracle)
+        }
+        if (oracle) {
             valueFormat = "SDO_GEOMETRY('%s')";
+        }
 
         final String valueCmd = String.format(valueFormat, value);
         return String.format(filter, column, valueCmd);
@@ -1204,10 +1210,12 @@ public class RequestHandler {
                     link.commit();
                     writer.write(results.size() == 1 ? gson.toJson(results.get(0)) : gson.toJson(results));
                 } catch (SQLException ex) {
-                    if (DEBUG_SQL)
+                    if (DEBUG_SQL) {
                         LOGR.log(Level.INFO, ex.getMessage(), ex);
+                    }
                     link.rollback();
                     if (isCreateAction()) {
+                        LOGR.log(Level.INFO, "CREATE operation failed", ex);
                         writer.write("null");
                     } else {
                         throw ex;
@@ -1281,14 +1289,14 @@ public class RequestHandler {
      * Searches for relations between tables and removes related from include
      * list. Feeds collectIds with exported primary keys
      *
-     * @param tableMeta  table columns metadata map
+     * @param tableMeta table columns metadata map
      * @param collectIds map with sets of collected ids
      * @throws SQLException
      */
     private void findTableRelations(Map<String, TableMeta> tableMeta, Map<String, Set<Object>> collectIds)
             throws ClassNotFoundException {
         if (!includeTables.isEmpty()) {
-            for (Iterator<String> iterator = includeTables.iterator(); iterator.hasNext(); ) {
+            for (Iterator<String> iterator = includeTables.iterator(); iterator.hasNext();) {
                 String includeTable = iterator.next();
                 TableMeta cTable = tableMeta.get(includeTable);
                 TableMeta topTable = tableMeta.get(table);
@@ -1355,7 +1363,7 @@ public class RequestHandler {
     }
 
     private void streamRecords(PrintWriter writer, List<String> columnsList, Map<String, Set<Object>> collectIds,
-                               ResultSet rs, Integer resultCount, TableMeta tableMeta) throws SQLException {
+            ResultSet rs, Integer resultCount, TableMeta tableMeta) throws SQLException {
         String relations = tableMeta.getRelationsJson();
         writer.write(String.format("\"%s\":{%s\"columns\":%s,\"records\":[", tableMeta.getName(),
                 relations,
@@ -1385,8 +1393,12 @@ public class RequestHandler {
 
     private String getCurrentSchema() throws SQLException {
         String schemaPattern = null;
-        if (config.isOracle()) schemaPattern = this.link.getMetaData().getUserName();
-        if (config.isMsSQL()) schemaPattern = "dbo";
+        if (config.isOracle()) {
+            schemaPattern = this.link.getMetaData().getUserName();
+        }
+        if (config.isMsSQL()) {
+            schemaPattern = "dbo";
+        }
         return schemaPattern;
     }
 
@@ -1639,6 +1651,7 @@ public class RequestHandler {
             case "VARBINARY":
             case "LONGVARBINARY":
             case "BLOB":
+            case "LONGBLOB":
                 isBinary = true;
         }
         return isBinary;

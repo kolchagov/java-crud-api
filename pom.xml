@@ -142,30 +142,30 @@
 
         <!-- https://mvnrepository.com/artifact/oracle/ojdbc5 -->
 
-        <!-- Install Local Dependency -->
+        <!-- For Oracle: Need to manual Install Local Dependency -->
         <!--
         wget https://devtools.jahia.com/nexus/content/groups/maven-jahia-org/com/oracle/ojdbc6/12.1.0.1/ojdbc6-12.1.0.1.jar
         mvn install:install-file -Dfile=ojdbc6-12.1.0.1.jar -DgroupId=com.oracle \
         -DartifactId=ojdbc6 -Dversion=12.1.0.1 -Dpackaging=jar -DgeneratePom=true
         -->
-        <dependency>
+<!--        <dependency>
             <groupId>com.oracle</groupId>
             <artifactId>ojdbc6</artifactId>
             <version>12.1.0.1</version>
             <scope>test</scope>
-        </dependency>
+        </dependency>-->
         <!-- https://mvnrepository.com/artifact/oracle/xdb -->
         <!--
         wget http://www.datanucleus.org:15080/downloads/maven2/oracle/xdb/1.0/xdb-1.0.jar
         mvn install:install-file -Dfile=xdb-1.0.jar -DgroupId=oracle -DartifactId=xdb -Dversion=1.0 -Dpackaging=jar -DgeneratePom=true
         -->
 
-        <dependency>
+<!--        <dependency>
             <groupId>oracle</groupId>
             <artifactId>xdb</artifactId>
             <version>1.0</version>
             <scope>test</scope>
-        </dependency>
+        </dependency>-->
 
 
     </dependencies>

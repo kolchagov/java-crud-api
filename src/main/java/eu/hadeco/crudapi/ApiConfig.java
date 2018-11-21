@@ -19,12 +19,11 @@ package eu.hadeco.crudapi;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import eu.hadeco.crudapi.RequestHandler.Actions;
-
-import javax.servlet.http.HttpServletRequest;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
+import javax.servlet.http.HttpServletRequest;
 
 /**
  * Extend this class to provide customization
@@ -293,6 +292,10 @@ public class ApiConfig implements AutoCloseable {
 
     public final boolean isPSQL() {
         return POSTGRESQL.equals(properties.get("dataSourceClassName"));
+    }
+
+    public final boolean isXERIAL() {
+        return XERIAL.equals(properties.get("dataSourceClassName"));
     }
 
     @Override
