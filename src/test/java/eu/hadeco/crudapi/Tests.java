@@ -339,7 +339,7 @@ public abstract class Tests extends TestBase {
     public void testValidatorErrorMessage() {
         TestApi test = new TestApi(this);
         test.put("/posts/1", "{\"category_id\":\"a\"}");
-        test.expect(false, "{\"category_id\":\"must be numeric\"}");
+        test.expect(false, "{\"category_id\":\"must be numeric or boolean\"}");
     }
 
     @Test

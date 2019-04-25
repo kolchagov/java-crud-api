@@ -21,6 +21,8 @@ import com.google.gson.*;
 import com.google.gson.internal.LinkedTreeMap;
 import com.ivanceras.fluent.sql.Breakdown;
 import com.ivanceras.fluent.sql.SQL;
+import static com.ivanceras.fluent.sql.SQL.Statics.*;
+import static eu.hadeco.crudapi.RequestHandler.Actions.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -40,9 +42,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
-import static com.ivanceras.fluent.sql.SQL.Statics.*;
-import static eu.hadeco.crudapi.RequestHandler.Actions.*;
 
 public class RequestHandler {
 
@@ -947,6 +946,7 @@ public class RequestHandler {
         if (param != null && param instanceof String) {
             String value = (String) param;
             if (value.matches("[+-]?\\d\\d*")) {
+                //Comment this line if you prefer strings for Number (eg. JS)
                 result = Long.parseLong(value);
             } else if (value.matches("(?:true|false)")) {
                 result = Boolean.parseBoolean(value);
@@ -1190,6 +1190,9 @@ public class RequestHandler {
                 writer.write("[\"Access-Control-Allow-Headers: Content-Type, X-XSRF-TOKEN\",\"Access-Control-Allow-Methods: OPTIONS, GET, PUT, POST, DELETE, PATCH\",\"Access-Control-Allow-Credentials: true\",\"Access-Control-Max-Age: 1728000\"]");
             } else {
                 if (batch.isEmpty()) {
+                    if (sql == null) {
+                        throw new IllegalArgumentException("Invalid input data: " + input);
+                    }
                     batch.add(sql);
                 }
 
@@ -1212,6 +1215,7 @@ public class RequestHandler {
                 } catch (SQLException ex) {
                     if (DEBUG_SQL) {
                         LOGR.log(Level.INFO, ex.getMessage(), ex);
+                        throw new IllegalArgumentException(ex.getMessage()); 
                     }
                     link.rollback();
                     if (isCreateAction()) {
@@ -1570,14 +1574,18 @@ public class RequestHandler {
 
     private boolean isTimeColumn(String key, Map<String, String> typeMap) {
         boolean isTime = false;
-        switch (typeMap.get(key).toUpperCase()) {
-            case "DATE":
-            case "TIME":
-            case "DATETIME":
-            case "DATETIME2":
-            case "TIMESTAMP":
-                isTime = true;
-                break;
+        try {
+            switch (typeMap.get(key).toUpperCase()) {
+                case "DATE":
+                case "TIME":
+                case "DATETIME":
+                case "DATETIME2":
+                case "TIMESTAMP":
+                    isTime = true;
+                    break;
+            }
+        } catch (NullPointerException ex) {
+            throw new IllegalArgumentException("Invalid column: " + key);
         }
         return isTime;
     }
@@ -1626,8 +1634,11 @@ public class RequestHandler {
                 result = Base64.decode(result.toString(), Base64.DEFAULT);
             } else if (isNumericColumn(key, typeMap)) {
                 if (isString) {
-                    if (!((String) result).matches("[+-]\\d\\d*[.]?\\d*")) {
-                        throw new NumberFormatException(String.format("{\"%s\":\"must be numeric\"}", key));
+                    if (((String) result).matches("(true|false)")) {
+                        //fix boolean values
+                        result = "true".equals(result) ? 1 : 0;
+                    } else if (!((String) result).matches("[+-]?\\d\\d*[.]?\\d*")) {
+                        throw new NumberFormatException(String.format("{\"%s\":\"must be numeric or boolean\"}", key));
                     }
                 } else {
                     result = fixNumeric(result);
