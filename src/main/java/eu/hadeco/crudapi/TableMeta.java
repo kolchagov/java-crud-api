@@ -28,6 +28,11 @@ class TableMeta {
     private final Map<String, String> primaryToForeignKeys;
     private String primaryKey, referedFromKey, referedToKey;
 
+    /**
+     * <p>Constructor for TableMeta.</p>
+     *
+     * @param table a {@link java.lang.String} object.
+     */
     public TableMeta(String table) {
         this.table = table;
         foreignKeys = new HashSet<>();
@@ -37,22 +42,47 @@ class TableMeta {
         referencedTables = new HashMap<>();
     }
 
+    /**
+     * <p>getName.</p>
+     *
+     * @return a {@link java.lang.String} object.
+     */
     public String getName() {
         return table;
     }
 
+    /**
+     * <p>Getter for the field <code>primaryKey</code>.</p>
+     *
+     * @return a {@link java.lang.String} object.
+     */
     public String getPrimaryKey() {
         return primaryKey;
     }
 
+    /**
+     * <p>Setter for the field <code>primaryKey</code>.</p>
+     *
+     * @param primaryKey a {@link java.lang.String} object.
+     */
     public void setPrimaryKey(String primaryKey) {
         this.primaryKey = String.format("%s.%s", table, primaryKey);
     }
 
+    /**
+     * <p>Getter for the field <code>referedToKey</code>.</p>
+     *
+     * @return a {@link java.lang.String} object.
+     */
     public String getReferedToKey() {
         return referedToKey;
     }
 
+    /**
+     * <p>getRelatedTableKeys.</p>
+     *
+     * @return a {@link java.util.Set} object.
+     */
     public Set<String> getRelatedTableKeys() {
         HashSet<String> result = new HashSet<>();
         for (TableMeta tableMeta : referencedTables.values()) {
@@ -61,15 +91,28 @@ class TableMeta {
         return result;
     }
 
+    /**
+     * <p>Getter for the field <code>foreignKeys</code>.</p>
+     *
+     * @return a {@link java.util.Set} object.
+     */
     public Set<String> getForeignKeys() {
         return foreignKeys;
     }
 
+    /**
+     * <p>clearReferencedTables.</p>
+     */
     public void clearReferencedTables() {
         referencedTables.clear();
         referedFromKey = null;
     }
 
+    /**
+     * <p>addReferencedTable.</p>
+     *
+     * @param otherTable a {@link eu.hadeco.crudapi.TableMeta} object.
+     */
     public void addReferencedTable(TableMeta otherTable) {
         otherTable.setReferencesFrom(this);
         referencedTables.put(otherTable.table, otherTable);
@@ -86,10 +129,23 @@ class TableMeta {
         }
     }
 
+    /**
+     * <p>Getter for the field <code>referencedTables</code>.</p>
+     *
+     * @return a {@link java.util.Map} object.
+     */
     public Map<String, TableMeta> getReferencedTables() {
         return referencedTables;
     }
 
+    /**
+     * <p>addForeignKeys.</p>
+     *
+     * @param pkTable a {@link java.lang.String} object.
+     * @param pk a {@link java.lang.String} object.
+     * @param fkTable a {@link java.lang.String} object.
+     * @param fk a {@link java.lang.String} object.
+     */
     public void addForeignKeys(String pkTable, String pk, String fkTable, String fk) {
         String primaryKey = String.format("%s.%s", pkTable, pk);
         String foreignKey = String.format("%s.%s", fkTable, fk);
@@ -103,14 +159,28 @@ class TableMeta {
         return referencedTablePrimaryKeys.get(table);
     }
 
+    /**
+     * <p>hasReferenceTo.</p>
+     *
+     * @param table a {@link java.lang.String} object.
+     * @return a boolean.
+     */
     public boolean hasReferenceTo(String table) {
         return referencedTablePrimaryKeys.containsKey(table);
     }
 
+    /**
+     * <p>isIntermediateFor.</p>
+     *
+     * @param leftTable a {@link java.lang.String} object.
+     * @param rightTable a {@link java.lang.String} object.
+     * @return a boolean.
+     */
     public boolean isIntermediateFor(String leftTable, String rightTable) {
         return referencedTablePrimaryKeys.containsKey(leftTable) && referencedTablePrimaryKeys.containsKey(rightTable);
     }
 
+    /** {@inheritDoc} */
     @Override
     public String toString() {
         final String tableName = String.format("%s: %s", table, foreignToPrimaryKeys);
@@ -126,6 +196,11 @@ class TableMeta {
         return referedFromKey == null ? null : new AbstractMap.SimpleEntry<>(referedFromKey, referedToKey);
     }
 
+    /**
+     * <p>getRelationsJson.</p>
+     *
+     * @return a {@link java.lang.String} object.
+     */
     public String getRelationsJson() {
         Map.Entry<String, String> relation = getRelation();
         if (relation == null) {

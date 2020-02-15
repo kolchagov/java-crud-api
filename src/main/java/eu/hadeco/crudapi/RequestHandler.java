@@ -43,6 +43,12 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+/**
+ * <p>RequestHandler class.</p>
+ *
+ * @author ivankol
+ * @version $Id: $Id
+ */
 public class RequestHandler {
 
     private static final java.util.logging.Logger LOGR = java.util.logging.Logger.getLogger(RequestHandler.class.getName());
@@ -88,6 +94,7 @@ public class RequestHandler {
     private Actions action;
     private JsonElement root;
     private boolean withTransform;
+    private boolean withDebugInserts; //this enables proper error response to POST requests, instead of null
 
     private RequestHandler(Connection link, HttpServletRequest req, ApiConfig apiConfig) throws SQLException, IOException, ClassNotFoundException {
         this.link = link;
@@ -120,6 +127,10 @@ public class RequestHandler {
         orderMap = parseOrder(tableName);
         final String transform = req.getParameter("transform");
         withTransform = transform == null || "1".equals(transform);
+        final String debugInsertParam = req.getParameter("debugInserts");
+        final String debugInsertHeader = req.getHeader("debugInserts");
+        withDebugInserts = "1".equals(debugInsertParam) || "1".equals(debugInsertHeader);
+
         this.table = tableName;
         this.tableMetaMap = getTableMetaMap();
         if (!tableMetaMap.containsKey(tableName)) {
@@ -148,7 +159,7 @@ public class RequestHandler {
      * @param req servlet request
      * @param resp servlet response to handle
      * @param apiConfig preconfigured ApiConfig class
-     * @throws IOException
+     * @throws java.io.IOException if cannot select utf-8 encoding
      */
     public static void handle(HttpServletRequest req, HttpServletResponse resp, ApiConfig apiConfig) throws IOException {
         req.setCharacterEncoding("utf-8");
@@ -322,6 +333,25 @@ public class RequestHandler {
      * Retrieves real table name from DB (uncomment to allow case-insensitive
      * match of included tables)
      */
+//    private String getRealTableName(String includedTable) {
+//        if(config.isOracle()) {
+//            includedTable = getNativeCaseName(includedTable);
+//        } else {
+//            try (Connection conn = config.getConnection()) {
+//                final Statement stmt = conn.createStatement();
+//                final ResultSet resultSet = stmt.executeQuery(String.format("SELECT * from %s where 0=1", includedTable));
+//                final ResultSetMetaData metaData = resultSet.getMetaData();
+//                if (metaData.getColumnCount() > 0) {
+//                   final String realName = metaData.getTableName(1);
+//                   if(!includedTable.equals(realName) && includedTable.equalsIgnoreCase(realName))
+//                       includedTable = realName;
+//                }
+//            } catch (SQLException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//        return includedTable;
+//    }
 //    private String getRealTableName(String includedTable) {
 //        if(config.isOracle()) {
 //            includedTable = getNativeCaseName(includedTable);
@@ -945,7 +975,8 @@ public class RequestHandler {
         Object result = param;
         if (param != null && param instanceof String) {
             String value = (String) param;
-            if (value.matches("[+-]?\\d\\d*")) {
+            //if the number starts with zero, it will be treated as string to keep leading zeroes
+            if (!value.matches("0\\d*") && value.matches("[+-]?\\d\\d*")) {
                 //Comment this line if you prefer strings for Number (eg. JS)
                 result = Long.parseLong(value);
             } else if (value.matches("(?:true|false)")) {
@@ -1181,7 +1212,8 @@ public class RequestHandler {
                         batch.add(sql);
                     }
                 } catch (NumberFormatException e) {
-                    if (action != CREATE) {
+                    LOGR.log(Level.WARNING, e.getMessage());
+                    if (action != CREATE || withDebugInserts) {
                         throw e;
                     }
                 }
@@ -1213,11 +1245,11 @@ public class RequestHandler {
                     link.commit();
                     writer.write(results.size() == 1 ? gson.toJson(results.get(0)) : gson.toJson(results));
                 } catch (SQLException ex) {
-                    if (DEBUG_SQL) {
-                        LOGR.log(Level.INFO, ex.getMessage(), ex);
-                        throw new IllegalArgumentException(ex.getMessage()); 
-                    }
                     link.rollback();
+                    if (DEBUG_SQL || withDebugInserts) {
+                        LOGR.log(Level.INFO, ex.getMessage(), ex);
+                        throw new IllegalArgumentException(ex.getMessage());
+                    }
                     if (isCreateAction()) {
                         LOGR.log(Level.INFO, "CREATE operation failed", ex);
                         writer.write("null");

@@ -77,6 +77,12 @@ class CrudApiHandler extends AbstractHandler {
         };
     }
 
+    /**
+     * <p>main.</p>
+     *
+     * @param args an array of {@link java.lang.String} objects.
+     * @throws java.lang.Exception if any.
+     */
     public static void main(String[] args) throws Exception {
         HttpConfiguration config = new HttpConfiguration();
         config.setSendServerVersion(false);
@@ -93,6 +99,7 @@ class CrudApiHandler extends AbstractHandler {
         server.join();
     }
 
+    /** {@inheritDoc} */
     @Override
     public void handle(String target, Request baseReq, HttpServletRequest req, HttpServletResponse resp)
             throws IOException, ServletException {

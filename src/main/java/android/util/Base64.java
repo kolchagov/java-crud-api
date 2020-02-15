@@ -23,6 +23,9 @@ import java.io.UnsupportedEncodingException;
  * binary data.  See RFCs <a
  * href="http://www.ietf.org/rfc/rfc2045.txt">2045</a> and <a
  * href="http://www.ietf.org/rfc/rfc3548.txt">3548</a>.
+ *
+ * @author ivankol
+ * @version $Id: $Id
  */
 public class Base64 {
     /**
@@ -110,9 +113,9 @@ public class Base64 {
      *               bytes using the default charset
      * @param flags  controls certain features of the decoded output.
      *               Pass {@code DEFAULT} to decode standard Base64.
-     *
-     * @throws IllegalArgumentException if the input contains
+     * @throws java.lang.IllegalArgumentException if the input contains
      * incorrect padding
+     * @return an array of {@link byte} objects.
      */
     public static byte[] decode(String str, int flags) {
         return decode(str.getBytes(), flags);
@@ -128,9 +131,9 @@ public class Base64 {
      * @param input the input array to decode
      * @param flags  controls certain features of the decoded output.
      *               Pass {@code DEFAULT} to decode standard Base64.
-     *
-     * @throws IllegalArgumentException if the input contains
+     * @throws java.lang.IllegalArgumentException if the input contains
      * incorrect padding
+     * @return an array of {@link byte} objects.
      */
     public static byte[] decode(byte[] input, int flags) {
         return decode(input, 0, input.length, flags);
@@ -148,9 +151,9 @@ public class Base64 {
      * @param len    the number of bytes of input to decode
      * @param flags  controls certain features of the decoded output.
      *               Pass {@code DEFAULT} to decode standard Base64.
-     *
-     * @throws IllegalArgumentException if the input contains
+     * @throws java.lang.IllegalArgumentException if the input contains
      * incorrect padding
+     * @return an array of {@link byte} objects.
      */
     public static byte[] decode(byte[] input, int offset, int len, int flags) {
         // Allocate space for the most data the input could represent.
@@ -450,6 +453,7 @@ public class Base64 {
      * @param flags  controls certain features of the encoded output.
      *               Passing {@code DEFAULT} results in output that
      *               adheres to RFC 2045.
+     * @return a {@link java.lang.String} object.
      */
     public static String encodeToString(byte[] input, int flags) {
         try {
@@ -471,6 +475,7 @@ public class Base64 {
      * @param flags  controls certain features of the encoded output.
      *               Passing {@code DEFAULT} results in output that
      *               adheres to RFC 2045.
+     * @return a {@link java.lang.String} object.
      */
     public static String encodeToString(byte[] input, int offset, int len, int flags) {
         try {
@@ -489,6 +494,7 @@ public class Base64 {
      * @param flags  controls certain features of the encoded output.
      *               Passing {@code DEFAULT} results in output that
      *               adheres to RFC 2045.
+     * @return an array of {@link byte} objects.
      */
     public static byte[] encode(byte[] input, int flags) {
         return encode(input, 0, input.length, flags);
@@ -505,6 +511,7 @@ public class Base64 {
      * @param flags  controls certain features of the encoded output.
      *               Passing {@code DEFAULT} results in output that
      *               adheres to RFC 2045.
+     * @return an array of {@link byte} objects.
      */
     public static byte[] encode(byte[] input, int offset, int len, int flags) {
         Encoder encoder = new Encoder(flags, null);
