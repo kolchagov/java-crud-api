@@ -12,11 +12,11 @@ import java.util.*;
 public class SQL {
 
 
-    private final String FIELD = "FIELD";
-    private final String FUNCTION = "FUNCTION";
-    private final String KEYWORD = "KEYWORD";
-    private final String TABLE = "TABLE";
-    private final String VALUE = "VALUE";
+    private static final String FIELD = "FIELD";
+    private static final String FUNCTION = "FUNCTION";
+    private static final String KEYWORD = "KEYWORD";
+    private static final String TABLE = "TABLE";
+    private static final String VALUE = "VALUE";
     String lastCall = null;
     boolean smartMode = true;//if on smart mode, adds commas, and parenthesis automatically if possible.
     int tabs = 0;
