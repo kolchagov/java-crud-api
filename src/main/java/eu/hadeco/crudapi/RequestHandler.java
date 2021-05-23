@@ -927,7 +927,7 @@ public class RequestHandler {
             convertedList.add(converted);
         }
         if (DEBUG_SQL) {
-            System.out.println(String.format("%s with params: %s", breakdown.getSql(), gson.toJson(convertedList)));
+            LOGR.log(Level.INFO,String.format("%s with params: %s", breakdown.getSql(), gson.toJson(convertedList)));
         }
         return statement;
     }
