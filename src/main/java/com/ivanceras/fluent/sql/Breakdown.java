@@ -30,7 +30,7 @@ public class Breakdown {
      */
     public Breakdown() {
         this.sql = new StringBuilder();
-        this.parameters = new LinkedList<Object>();
+        this.parameters = new LinkedList<>();
     }
 
     /**

@@ -20,8 +20,8 @@ public class SQL {
     String lastCall = null;
     boolean smartMode = true;//if on smart mode, adds commas, and parenthesis automatically if possible.
     int tabs = 0;
-    private List<Object> keywords = new LinkedList<Object>();// can be string and SQL
-    private List<Object> values = new LinkedList<Object>();
+    private List<Object> keywords = new LinkedList<>();// can be string and SQL
+    private List<Object> values = new LinkedList<>();
 
     /**
      * <p>WITH.</p>
@@ -885,7 +885,6 @@ public class SQL {
      * @return a {@link com.ivanceras.fluent.sql.SQL} object.
      */
     public SQL FROM(String table, String... otherTables) {
-        List<String> tableList = new ArrayList<String>();
         tableList.add(table);
         Collections.addAll(tableList, otherTables);
         return FROM(tableList.toArray(new String[tableList.size()]));
