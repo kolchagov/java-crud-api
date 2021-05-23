@@ -885,6 +885,7 @@ public class SQL {
      * @return a {@link com.ivanceras.fluent.sql.SQL} object.
      */
     public SQL FROM(String table, String... otherTables) {
+        List<String> tableList = new ArrayList<>();
         tableList.add(table);
         Collections.addAll(tableList, otherTables);
         return FROM(tableList.toArray(new String[tableList.size()]));
