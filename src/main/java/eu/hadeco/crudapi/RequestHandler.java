@@ -110,7 +110,8 @@ public class RequestHandler {
         if (tableName == null || tableName.isEmpty()) {
             throw new ClassNotFoundException("entity");
         }
-        isJsonContent = "application/json".equals(req.getContentType());
+        final String contentType = req.getContentType();
+        isJsonContent = contentType != null ? contentType.toLowerCase().startsWith("application/json") : false;
         if (isJsonContent) {
             try {
                 this.root = jsonParser.parse(req.getReader());
@@ -1570,10 +1571,12 @@ public class RequestHandler {
                 input.put(column, tenancyValue);
             }
         }
-        final List<String> columns = new ArrayList<>();
-        columns.addAll(input.keySet());
+        final List<String> columnNames = new ArrayList<>();
+        for (String column : input.keySet()) {
+            columnNames.add(getFullColumnName(table, column));
+        }
         if (isCreateAction()) {
-            sql.openParen().FIELD(columns.toArray(new String[columns.size()])).closeParen();
+            sql.openParen().FIELD(columnNames.toArray(new String[columnNames.size()])).closeParen();
         } else {
             sql.SET();
         }
