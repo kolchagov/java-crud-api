@@ -957,15 +957,16 @@ public class RequestHandler {
         applyFilters(sql, table, parameters.get(ID_KEY));
         final Breakdown breakdown = sql.build();
         final String query = breakdown.getSql();
-        final PreparedStatement statement = link.prepareStatement(query);
         Integer count = null;
-        for (int i = 0; i < breakdown.getParameters().length; i++) {
-            Object o = convertToObject(breakdown.getParameters()[i]);
-            statement.setObject(i + 1, o);
-        }
-        try (ResultSet rs = statement.executeQuery()) {
-            if (rs.next()) {
-                count = rs.getInt(1);
+        try (PreparedStatement statement = link.prepareStatement(query)) {
+            for (int i = 0; i < breakdown.getParameters().length; i++) {
+                Object o = convertToObject(breakdown.getParameters()[i]);
+                statement.setObject(i + 1, o);
+            }
+            try (ResultSet rs = statement.executeQuery()) {
+                if (rs.next()) {
+                    count = rs.getInt(1);
+                }
             }
         }
         return count;
