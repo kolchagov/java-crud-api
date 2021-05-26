@@ -12,16 +12,16 @@ import java.util.*;
 public class SQL {
 
 
-    private final String FIELD = "FIELD";
-    private final String FUNCTION = "FUNCTION";
-    private final String KEYWORD = "KEYWORD";
-    private final String TABLE = "TABLE";
-    private final String VALUE = "VALUE";
+    private static final String FIELD = "FIELD";
+    private static final String FUNCTION = "FUNCTION";
+    private static final String KEYWORD = "KEYWORD";
+    private static final String TABLE = "TABLE";
+    private static final String VALUE = "VALUE";
     String lastCall = null;
     boolean smartMode = true;//if on smart mode, adds commas, and parenthesis automatically if possible.
     int tabs = 0;
-    private List<Object> keywords = new LinkedList<Object>();// can be string and SQL
-    private List<Object> values = new LinkedList<Object>();
+    private List<Object> keywords = new LinkedList<>();// can be string and SQL
+    private List<Object> values = new LinkedList<>();
 
     /**
      * <p>WITH.</p>
@@ -885,7 +885,7 @@ public class SQL {
      * @return a {@link com.ivanceras.fluent.sql.SQL} object.
      */
     public SQL FROM(String table, String... otherTables) {
-        List<String> tableList = new ArrayList<String>();
+        List<String> tableList = new ArrayList<>();
         tableList.add(table);
         Collections.addAll(tableList, otherTables);
         return FROM(tableList.toArray(new String[tableList.size()]));
