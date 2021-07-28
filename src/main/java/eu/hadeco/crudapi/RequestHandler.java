@@ -44,7 +44,8 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 /**
- * <p>RequestHandler class.</p>
+ * <p>
+ * RequestHandler class.</p>
  *
  * @author ivankol
  * @version $Id: $Id
@@ -644,41 +645,43 @@ public class RequestHandler {
             records.add(row);
         }
 
-        for (TableMeta subTableMeta : tableMeta.getReferencedTables().values()) {
-            String table = subTableMeta.getName();
-            List<String> columnsList = getColumnsList(table);
-            Map.Entry<String, String> subRelation = subTableMeta.getRelation();
-            final Set<Object> ids;
-            if (subRelation != null && collectIds.containsKey(subRelation.getValue())) {
-                ids = collectIds.get(subRelation.getValue());
-                final String key = subRelation.getKey();
-                if (!columnsList.contains(key)) {
-                    columnsList.add(key);
-                }
-            } else {
-                ids = new HashSet<>();
-            }
-            final SQL sql = SELECT(columnsList.toArray(new String[columnsList.size()])).FROM(table);
-            if (!ids.isEmpty() && subRelation != null) {
-                sql.WHERE(subRelation.getKey()).IN(ids.toArray());
-            }
-            applyOrder(sql, table);
-            try (ResultSet resultSet = prepareStatement(sql).executeQuery()) {
-                LinkedList<Map<String, Object>> relatedRecords = processJsonObjectResults(
-                        resultSet, writer, columnsList, subTableMeta, collectIds, subRelation);
-                if (subRelation == null) {
-                    writer.write(","); //list non-related table objects sequentially
+        if (!records.isEmpty()) {
+            for (TableMeta subTableMeta : tableMeta.getReferencedTables().values()) {
+                String table = subTableMeta.getName();
+                List<String> columnsList = getColumnsList(table);
+                Map.Entry<String, String> subRelation = subTableMeta.getRelation();
+                final Set<Object> ids;
+                if (subRelation != null && collectIds.containsKey(subRelation.getValue())) {
+                    ids = collectIds.get(subRelation.getValue());
+                    final String key = subRelation.getKey();
+                    if (!columnsList.contains(key)) {
+                        columnsList.add(key);
+                    }
                 } else {
-                    for (Map<String, Object> record : records) {
-                        LinkedList<Map<String, Object>> filtered = new LinkedList<>();
-                        for (Map<String, Object> relatedRecord : relatedRecords) {
-                            String left = getShortId(subRelation, tableMeta.getName());
-                            final String right = getShortId(subRelation, table);
-                            if (Objects.equals(record.get(left), relatedRecord.get(right))) {
-                                filtered.add(relatedRecord);
+                    ids = new HashSet<>();
+                }
+                final SQL sql = SELECT(columnsList.toArray(new String[columnsList.size()])).FROM(table);
+                if (!ids.isEmpty() && subRelation != null) {
+                    sql.WHERE(subRelation.getKey()).IN(ids.toArray());
+                }
+                applyOrder(sql, table);
+                try (ResultSet resultSet = prepareStatement(sql).executeQuery()) {
+                    LinkedList<Map<String, Object>> relatedRecords = processJsonObjectResults(
+                            resultSet, writer, columnsList, subTableMeta, collectIds, subRelation);
+                    if (subRelation == null) {
+                        writer.write(","); //list non-related table objects sequentially
+                    } else {
+                        for (Map<String, Object> record : records) {
+                            LinkedList<Map<String, Object>> filtered = new LinkedList<>();
+                            for (Map<String, Object> relatedRecord : relatedRecords) {
+                                String left = getShortId(subRelation, tableMeta.getName());
+                                final String right = getShortId(subRelation, table);
+                                if (Objects.equals(record.get(left), relatedRecord.get(right))) {
+                                    filtered.add(relatedRecord);
+                                }
                             }
+                            record.put(table, filtered);
                         }
-                        record.put(table, filtered);
                     }
                 }
             }
@@ -928,7 +931,7 @@ public class RequestHandler {
             convertedList.add(converted);
         }
         if (DEBUG_SQL) {
-            LOGR.log(Level.INFO,String.format("%s with params: %s", breakdown.getSql(), gson.toJson(convertedList)));
+            LOGR.log(Level.INFO, String.format("%s with params: %s", breakdown.getSql(), gson.toJson(convertedList)));
         }
         return statement;
     }
