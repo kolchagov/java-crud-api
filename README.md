@@ -740,7 +740,8 @@ Tests are configured in the corresponding child BaseClass classes:
   User created.
  SQL> grant dba to crudtest;
   Grant succeeded.
-
+Edit OracleTest.java and configure user, database/SID (Oracle Express can only use 'xe') and host (line 34)
+```
 Running tests via docker is recommended (especially with PostgreSQL, which needs 'postgis' extension):
 PostgreSQL docker image with postgis:
 ```
@@ -750,23 +751,19 @@ SQLServer 2017 docker image:
 ```
 sudo docker run -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='MySecretPasswordHere' -p 1433:1433 --name sql1 --hostname sql1 -d mcr.microsoft.com/mssql/server:2017-latest
 ```
-Note: prior running tests, connect to each test server and create an empty database (for example `crudtest`)
-Edit OracleTest.java and configure user, database/SID (Oracle Express can only use 'xe') and host (line 34)
-```
-
-in each test class, you should provide credentials, server and database name.
-Database have to exist in order to perform the tests (it should be created by hand).
+Note: prior running tests, connect to each test server and create an empty database (for example `crudtest`) in each test class, you should provide credentials, server and database name.
+_Database have to exist in order to perform the tests (it should be created by hand)_.
 Table contents will be overwritten on each test run, so make sure you haven't provided a used DB name.
 Run configured tests with
 
     mvn test
 
-Tests have been performed in windows & Ubuntu 14.04 with following setups:
+Tests have been performed in windows & Linux Mint 20.03 with following setups:
 
-  - Ubuntu 14.04 Server with MySQL 5.5 and PostgreSQL 9.3
-  - Ubuntu 14.04 Server with MySQL 5.6
-  - Ubuntu 14.04 Server with MySQL 5.7
-  - Windows 10x64 and SQL Server 2012 (build 2100)
+  - Docker (linux) and PostgreSQL 11.2 (Debian 11.2-1.pgdg90+1) with 'postgis' extension
+  - Docker (linux) and MySQL 5.6
+  - Linux Mint 20.03 with MySQL 5.7
+  - Docker (linux) and SQL Server 2017-latest
   - Windows 10x64 and Oracle Expresss edition 11.2
 
 
