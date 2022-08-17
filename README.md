@@ -1,19 +1,25 @@
+## UPDATED version 1.1
+Several security vulerabilities have been closed:
+ - Bump mysql-connector-java from 5.1.49 to > 8.0.28
+ - org.postgresql:postgresql > 42.2.26
+ - Bump gson from 2.8.7 to 2.8.9
+Because of these updates, this version is no longer compatible with Java 7
 
-This is a full Java port of the [php-crud-api](https://github.com/mevdschee/php-crud-api) project (single file REST API). 
+This is a full Java port of the [php-crud-api](https://github.com/mevdschee/php-crud-api) project (single file REST API).
 It implements almost full functionality (with the exception of Swagger tools), and uses JDBC (should be platform and SQL-dialect independent).
 It differs from the original project by some optimizations:
  - Result is transformed by default (if transform parameter is not specified, it is assumed to be 1)
  - Metadata cache (reading metadata is expensive, so it's cached for 1 minute, providing huge performance boost)
  - Streaming API in almost all cases (with the exception of relations: 'include' command).
  - Connection pooling through Hikari pool
- 
+
 These features makes it a lot more responsive under heavy load than php version.
 
 ## Installation
 
 Install dependencies using:
 
-    sudo apt-get install maven openjdk-7-jdk
+    sudo apt-get install maven openjdk-8-jdk
 
 Then build the server.
 
@@ -121,7 +127,7 @@ NB: You may specify "satisfy=categories.all,posts.any" if you want to mix "and" 
 
 ## List + Column selection
 
-By default all columns are selected. With the "columns" parameter you can select specific columns. Multiple columns should be comma separated. 
+By default all columns are selected. With the "columns" parameter you can select specific columns. Multiple columns should be comma separated.
 An asterisk ("*") may be used as a wildcard to indicate "all columns". Similar to "columns" you may use the "exclude" parameter to remove certain columns:
 
 ```
@@ -208,7 +214,7 @@ Note that the fields that are not specified in the request get the default value
 
 ## Create (with JSON array)
 
-Alternatively you can send a JSON array containing multiple JSON objects in the body. The call returns an array of "last insert id" values. 
+Alternatively you can send a JSON array containing multiple JSON objects in the body. The call returns an array of "last insert id" values.
 
 ```
 POST http://localhost:8080/categories
@@ -595,7 +601,7 @@ In the above example you see how binary data is sent. Both "base64url" and stand
 ## Spatial/GIS support
 
 There is also support for spatial filters:
-  
+
   - sco: spatial contains (geometry contains another)
   - scr: spatial crosses (geometry crosses another)
   - sdi: spatial disjoint (geometry is disjoint from another)
@@ -631,7 +637,7 @@ PUT http://localhost:8080/users/1
 
 In the above example you see how a [WKT string](https://en.wikipedia.org/wiki/Well-known_text) is sent.
 Note: Oracle XE doesn't support WKT string conversion.
-"Oracle Express does not have a Javavm in the database and the WKT conversion routines need this as the feature is implemented as Java stored procedures. So these WKT routines are not supported on the Express edition." 
+"Oracle Express does not have a Javavm in the database and the WKT conversion routines need this as the feature is implemented as Java stored procedures. So these WKT routines are not supported on the Express edition."
 ## Unstructured data support
 
 You may store JSON documents in JSON (MySQL), JSONB (PostgreSQL) or XML (SQL Server) field types in the database.
@@ -692,7 +698,7 @@ By specifying `allow_origin` in the configuration you can control the `Access-Co
 
 If you set `allow_origin` to `*` the `Access-Control-Allow-Origin` response header will be set to `*`.
 In all other cases the `Access-Control-Allow-Origin` response header is set to the value of the request header `Origin` when a match is found.
- 
+
 You may also specify `allow_origin` to `https://*.yourdomain.com` matching any host that starts with `https://` and ends on `.yourdomain.com`.
 
 Multiple hosts may be specified using a comma, allowing you to set `allow_origin` to `https://yourdomain.com, https://*.yourdomain.com`.
@@ -713,6 +719,7 @@ The following types of 404 'Not found' errors may be reported:
   - 1pk (primary key not found or composite)
 
 ## Tests
+By default, only Sqlite test is executed. To activate other tests configure test parameters at the top of each SQL server test file.
 Tests are configured in the corresponding child BaseClass classes:
 - MysqlTest
 ```
@@ -729,11 +736,21 @@ Tests are configured in the corresponding child BaseClass classes:
  SQL> connect system
   Enter password: <your setup password here>
   Connected.
- SQL> create user crudtest identified by crudtest; 
+ SQL> create user crudtest identified by crudtest;
   User created.
  SQL> grant dba to crudtest;
   Grant succeeded.
-  
+
+Running tests via docker is recommended (especially with PostgreSQL, which needs 'postgis' extension):
+PostgreSQL docker image with postgis:
+```
+docker run --name postgres -p 5432:5432 -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD='MySecretPasswordHere' -d mdillon/postgis
+```
+SQLServer 2017 docker image:
+```
+sudo docker run -e ACCEPT_EULA=Y -e MSSQL_SA_PASSWORD='MySecretPasswordHere' -p 1433:1433 --name sql1 --hostname sql1 -d mcr.microsoft.com/mssql/server:2017-latest
+```
+Note: prior running tests, connect to each test server and create an empty database (for example `crudtest`)
 Edit OracleTest.java and configure user, database/SID (Oracle Express can only use 'xe') and host (line 34)
 ```
 
@@ -756,7 +773,7 @@ Tests have been performed in windows & Ubuntu 14.04 with following setups:
 ## Building a executable JAR file
 Make sure you've added proper credentials and SQL server type in CrudApiHandler class.
 Also edit pom.xml and look below **SQL drivers** line, change the scope line that matches your driver:
-    
+
     <dependency>
         <groupId>mysql</groupId>
         <artifactId>mysql-connector-java</artifactId>
@@ -777,12 +794,12 @@ You can see the api at work at http://localhost:8080/posts/1.
 ## Other dependencies
 
 The project uses internally sources from 'fluentsql' project and 'Base64' class from AOSP,
- 
+
  https://github.com/ivanceras/fluentsql/
- 
+
  https://github.com/aosp-mirror/platform_frameworks_base/blob/master/core/java/android/util/Base64.java
- 
-Both of them licensed under Apache Public License v2.0. 
+
+Both of them licensed under Apache Public License v2.0.
 ## Binary files for Oracle JDBC connector
 The project uses ojdbc6 drivers, which are compatible with Java 7. Xdb-1.0.jar is needed only for SDO extensions, you may skip it if GIS functionality is not needed.
 Oracle JDBC files are not available in Maven. You should download them from Oracle site and install them into your local maven repository using the following commands:
