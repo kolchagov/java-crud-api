@@ -51,7 +51,7 @@ public class ApiConfig implements AutoCloseable {
     /** Constant <code>CONNECTOR_J="com.mysql.jdbc.jdbc2.optional.MysqlData"{trunked}</code> */
     public static final String CONNECTOR_J = "com.mysql.jdbc.jdbc2.optional.MysqlDataSource";
     /** Constant <code>MYSQL="com.mysql.jdbc.jdbc2.optional.MysqlData"{trunked}</code> */
-    public static final String MYSQL = "com.mysql.jdbc.jdbc2.optional.MysqlDataSource";
+    public static final String MYSQL = "com.mysql.cj.jdbc.MysqlDataSource";
     /** Constant <code>MARIADB="org.mariadb.jdbc.MariaDbDataSource"</code> */
     public static final String MARIADB = "org.mariadb.jdbc.MariaDbDataSource";
     /** Constant <code>ORACLE="oracle.jdbc.pool.OracleDataSource"</code> */
@@ -136,7 +136,11 @@ public class ApiConfig implements AutoCloseable {
         }
         properties.put("dataSource.databaseName", databaseName);
         if (MYSQL.equals(datasourceClassName)) {
-            properties.put("dataSource.useUnicode", "true");
+            //this is no longer supported in Mysql Connector Java 8, but utf8 is now default
+//            properties.put("dataSource.useUnicode", "true");
+            //This removes warning messages by explicitly set SSL to false.
+            //if you need SSL, set this to true and provide trust store as required by MySQL
+            properties.put("dataSource.useSSL", "false");
             properties.put("dataSource.characterEncoding", "utf8");
         }
         if (isPSQL()) {

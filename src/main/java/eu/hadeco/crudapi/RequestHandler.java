@@ -376,12 +376,14 @@ public class RequestHandler {
     private String getPrimaryKey(String table) throws SQLException {
         DatabaseMetaData metaData = link.getMetaData();
         String schemaPattern = getCurrentSchema();
+        final String tableNamePattern = config.isOracle() ? table.toUpperCase() : table;
         String primaryKey;
-        try (ResultSet rs = metaData.getPrimaryKeys(null, schemaPattern, config.isOracle() ? table.toUpperCase() : table)) {
+        try (ResultSet rs = metaData.getPrimaryKeys(databaseName, schemaPattern, tableNamePattern)) {
             primaryKey = null;
             while (rs.next()) {
+                final String keyColumnName = rs.getString("COLUMN_NAME");
                 if (table.equalsIgnoreCase(rs.getString("TABLE_NAME"))) {
-                    primaryKey = getFullColumnName(table, rs.getString("COLUMN_NAME"));
+                    primaryKey = getFullColumnName(table, keyColumnName);
                     break;
                 }
             }
@@ -793,9 +795,12 @@ public class RequestHandler {
             case "DECIMAL":         //this type is included as string in tests
             case "NUMERIC":         //this type is included as string in tests
                 value = rs.getString(colName);
-                if (config.isOracle() && "NUMBER".equals(type) && value != null && ((String) value).indexOf('.') < 0) {
-                    //special case: Oracle's integer values
-                    value = rs.getLong(colName);
+                if ("NUMERIC".equals(type) || "NUMBER".equals(type)) {
+                    //special case: some integer values defined in tests
+                    boolean isInteger = value != null && ((String) value).indexOf('.') < 0;
+                    if (isInteger) {
+                        value = rs.getLong(colName);
+                    }
                 }
                 break;
 //            case "NUMERIC":         //this type is included as string in tests
@@ -1576,7 +1581,7 @@ public class RequestHandler {
         }
         final List<String> columnNames = new ArrayList<>();
         for (String column : input.keySet()) {
-            columnNames.add(getFullColumnName(table, column));
+            columnNames.add(column);
         }
         if (isCreateAction()) {
             sql.openParen().FIELD(columnNames.toArray(new String[columnNames.size()])).closeParen();
