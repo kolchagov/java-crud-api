@@ -123,4 +123,10 @@ CREATE TABLE `barcodes` (
 
 INSERT INTO `barcodes` (`id`, `product_id`, `hex`, `bin`) VALUES (1,	1,	'00ff01',	X'00ff01');
 
+DROP TABLE IF EXISTS `parameters`;
+CREATE TABLE `parameters` (
+                              `key` varchar(255) NOT NULL,
+                              `value` text,
+                              PRIMARY KEY (`key`)
+);
 --

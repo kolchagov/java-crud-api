@@ -145,5 +145,12 @@ CREATE TABLE `barcodes` (
 
 INSERT INTO `barcodes` (`id`, `product_id`, `hex`, `bin`) VALUES
 (1,	1, '00ff01', UNHEX('00ff01'));
+-- gloriaorders.parameters definition
 
+DROP TABLE IF EXISTS `parameters`;
+CREATE TABLE `parameters` (
+  `key` varchar(255) NOT NULL,
+  `value` text,
+  PRIMARY KEY (`key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 -- 2016-11-05 13:11:47

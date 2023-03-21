@@ -83,6 +83,16 @@ BEGIN
 DROP VIEW [tag_usage]
 END
 GO
+IF (OBJECT_ID('dbo.parameters', 'U') IS NOT NULL)
+BEGIN
+DROP TABLE [dbo.parameters]
+END
+CREATE TABLE [dbo.parameters] (
+    "key" varchar(255) NOT NULL,
+    value text,
+    PRIMARY KEY ("key")
+)
+GO
 CREATE TABLE [categories](
 	[id] [int] IDENTITY,
 	[name] [nvarchar](max) NOT NULL,

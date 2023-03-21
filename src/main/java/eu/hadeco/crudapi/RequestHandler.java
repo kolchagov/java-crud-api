@@ -19,22 +19,9 @@ package eu.hadeco.crudapi;
 import android.util.Base64;
 import com.google.gson.*;
 import com.google.gson.internal.LinkedTreeMap;
+import com.google.gson.reflect.TypeToken;
 import com.ivanceras.fluent.sql.Breakdown;
 import com.ivanceras.fluent.sql.SQL;
-import static com.ivanceras.fluent.sql.SQL.Statics.*;
-import static eu.hadeco.crudapi.RequestHandler.Actions.*;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Type;
-import java.sql.*;
-import java.sql.Date;
-import java.util.*;
-import java.util.logging.Level;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import net.sf.json.JSON;
 import net.sf.json.JSONSerializer;
 import net.sf.json.xml.XMLSerializer;
@@ -43,6 +30,28 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.reflect.Type;
+import java.sql.Date;
+import java.sql.*;
+import java.util.*;
+import java.util.logging.Level;
+
+import static com.ivanceras.fluent.sql.SQL.Statics.DELETE;
+import static com.ivanceras.fluent.sql.SQL.Statics.UPDATE;
+import static com.ivanceras.fluent.sql.SQL.Statics.*;
+import static eu.hadeco.crudapi.RequestHandler.Actions.CREATE;
+import static eu.hadeco.crudapi.RequestHandler.Actions.DELETE;
+import static eu.hadeco.crudapi.RequestHandler.Actions.UPDATE;
+import static eu.hadeco.crudapi.RequestHandler.Actions.*;
+
 /**
  * <p>
  * RequestHandler class.</p>
@@ -50,6 +59,7 @@ import org.xml.sax.SAXException;
  * @author ivankol
  * @version $Id: $Id
  */
+@SuppressWarnings("SimplifiableConditionalExpression")
 public class RequestHandler {
 
     private static final java.util.logging.Logger LOGR = java.util.logging.Logger.getLogger(RequestHandler.class.getName());
@@ -57,6 +67,7 @@ public class RequestHandler {
     private static final Gson gson;
     //Change this to true during development - turns on sql exceptions logging
     private static final boolean DEBUG_SQL = false;
+    private static String quoteString = "\"";
 
     static {
         final GsonBuilder gsonBuilder = new GsonBuilder();
@@ -94,8 +105,8 @@ public class RequestHandler {
     private final Map<String, TableMeta> tableMetaMap;
     private Actions action;
     private JsonElement root;
-    private boolean withTransform;
-    private boolean withDebugInserts; //this enables proper error response to POST requests, instead of null
+    private final boolean withTransform;
+    private final boolean withDebugInserts; //this enables proper error response to POST requests, instead of null
 
     private RequestHandler(Connection link, HttpServletRequest req, ApiConfig apiConfig) throws SQLException, IOException, ClassNotFoundException {
         this.link = link;
@@ -104,18 +115,23 @@ public class RequestHandler {
         this.databaseName = link.getCatalog();
         final String pathInfo = req.getPathInfo();
         String[] request = pathInfo == null ? new String[]{""} : pathInfo.replaceAll("/$|^/", "").split("/");
-        JsonParser jsonParser = new JsonParser();
         this.root = null;
         // retrieve the table and key from the path
         String tableName = request[0].replaceAll("[^a-zA-Z0-9_]+", "");
-        if (tableName == null || tableName.isEmpty()) {
+        if (tableName.isEmpty()) {
             throw new ClassNotFoundException("entity");
         }
         final String contentType = req.getContentType();
-        isJsonContent = contentType != null ? contentType.toLowerCase().startsWith("application/json") : false;
+        isJsonContent = contentType != null && contentType.toLowerCase().startsWith("application/json");
         if (isJsonContent) {
             try {
-                this.root = jsonParser.parse(req.getReader());
+                StringBuilder sb = new StringBuilder();
+                BufferedReader reader = req.getReader();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line.trim());
+                }
+                this.root = JsonParser.parseString(sb.toString());
             } catch (JsonParseException e) {
                 throw new ClassNotFoundException("input");
             }
@@ -158,8 +174,8 @@ public class RequestHandler {
     /**
      * Default servlet handler. Use it to handle servlet requests
      *
-     * @param req servlet request
-     * @param resp servlet response to handle
+     * @param req       servlet request
+     * @param resp      servlet response to handle
      * @param apiConfig preconfigured ApiConfig class
      * @throws java.io.IOException if cannot select utf-8 encoding
      */
@@ -292,10 +308,11 @@ public class RequestHandler {
 
     private Map<String, String> getColumnTypesMap(String table) throws ClassNotFoundException {
         ResultSetMetaData rsMeta;
-        Map<String, String> typeMap;
-        try (ResultSet rs = link.createStatement().executeQuery(String.format("SELECT * from %s where 0=1", table))) {
+        Map<String, String> tableTypeMap;
+        try (ResultSet rs = link.createStatement().executeQuery(
+                String.format("SELECT * from %s where 0=1", table))) {
             rsMeta = rs.getMetaData();
-            typeMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
+            tableTypeMap = new LinkedTreeMap<>(String.CASE_INSENSITIVE_ORDER);
             for (int i = 0; i < rsMeta.getColumnCount(); i++) {
                 String columnTypeName = rsMeta.getColumnTypeName(i + 1);
                 if ("NULL".equals(columnTypeName)) {
@@ -303,12 +320,12 @@ public class RequestHandler {
                     columnTypeName = "INT";
                 }
                 final String columnName = rsMeta.getColumnName(i + 1);
-                typeMap.put(getFullColumnName(table, columnName), columnTypeName);
+                tableTypeMap.put(getFullColumnName(table, columnName), columnTypeName);
             }
         } catch (SQLException ex) {
             throw new ClassNotFoundException("entity");
         }
-        return typeMap;
+        return tableTypeMap;
     }
 
     private List<String> applyInclude() throws ClassNotFoundException {
@@ -335,25 +352,6 @@ public class RequestHandler {
      * Retrieves real table name from DB (uncomment to allow case-insensitive
      * match of included tables)
      */
-//    private String getRealTableName(String includedTable) {
-//        if(config.isOracle()) {
-//            includedTable = getNativeCaseName(includedTable);
-//        } else {
-//            try (Connection conn = config.getConnection()) {
-//                final Statement stmt = conn.createStatement();
-//                final ResultSet resultSet = stmt.executeQuery(String.format("SELECT * from %s where 0=1", includedTable));
-//                final ResultSetMetaData metaData = resultSet.getMetaData();
-//                if (metaData.getColumnCount() > 0) {
-//                   final String realName = metaData.getTableName(1);
-//                   if(!includedTable.equals(realName) && includedTable.equalsIgnoreCase(realName))
-//                       includedTable = realName;
-//                }
-//            } catch (SQLException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//        return includedTable;
-//    }
 //    private String getRealTableName(String includedTable) {
 //        if(config.isOracle()) {
 //            includedTable = getNativeCaseName(includedTable);
@@ -434,7 +432,7 @@ public class RequestHandler {
         }
         //apply columnAuthorizer
         for (String table : columnsMap.keySet()) {
-            for (Iterator<String> iterator = columnsMap.get(table).iterator(); iterator.hasNext();) {
+            for (Iterator<String> iterator = columnsMap.get(table).iterator(); iterator.hasNext(); ) {
                 String column = iterator.next();
                 final boolean isAuthorized
                         = config.columnAuthorizer(action, databaseName, table, column.substring(table.length() + 1));
@@ -490,10 +488,10 @@ public class RequestHandler {
     private List<String> getColumnsList(String table) {
         List<String> columns = new ArrayList<>();
         final Set<String> columnSet = this.columns.get(table);
+        final String prefix = String.format("%s.", table);
         if (columnSet != null) {
             columns.addAll(columnSet);
         }
-        final String prefix = String.format("%s.", table);
         if (columns.isEmpty()) {
             for (String column : typeMap.keySet()) {
                 if (column.startsWith(prefix)) {
@@ -576,10 +574,10 @@ public class RequestHandler {
             map.put("resultCount", resultCount);
 
             String[] split = pageParam.split(",");
-            int pages = Integer.valueOf(split[0]);
+            int pages = Integer.parseInt(split[0]);
             pages = pages > 0 ? pages - 1 : 0;
 
-            int limit = split.length == 2 ? Integer.valueOf(split[1]) : 20;
+            int limit = split.length == 2 ? Integer.parseInt(split[1]) : 20;
             int offset = pages * limit;
             final boolean msSQL = config.isMsSQL();
             final boolean oracle = config.isOracle();
@@ -748,6 +746,7 @@ public class RequestHandler {
         }
         //POSTGRES JDBC driver returns lower-cased types
         String type = typeMap.get(fullName);
+        if (type == null) return null; //Missing column type (foreign column or system object)
         type = type.toUpperCase();
         if (isBinaryColumn(fullName, typeMap)) {
             type = BINARY;
@@ -760,6 +759,9 @@ public class RequestHandler {
         switch (type) {
             case "GEOMETRY":         //this type is included in tests as ST_AsText(value)
                 value = rs.getString(colName.replace(".", "_"));
+                if (value != null) {
+                    value = ((String) value).replace("POINT ", "POINT"); //fix MsSQL representation
+                }
                 break;
             case "MDSYS.SDO_GEOMETRY":
                 //todo implement Oracle spatial object conversion to text
@@ -983,13 +985,13 @@ public class RequestHandler {
 
     private Object convertToObject(Object param) {
         Object result = param;
-        if (param != null && param instanceof String) {
+        if (param instanceof String) {
             String value = (String) param;
             //if the number starts with zero, it will be treated as string to keep leading zeroes
             if (!value.matches("0\\d*") && value.matches("[+-]?\\d\\d*")) {
                 //Comment this line if you prefer strings for Number (eg. JS)
                 result = Long.parseLong(value);
-            } else if (value.matches("(?:true|false)")) {
+            } else if (value.matches("(true|false)")) {
                 result = Boolean.parseBoolean(value);
             }
         }
@@ -1179,7 +1181,9 @@ public class RequestHandler {
             }
         } else if (root != null && root.isJsonObject()) {
 //            process json data - single object
-            input = gson.fromJson(root, input.getClass());
+            final Type jsonType = new TypeToken<Map<String, Object>>() {
+            }.getType();
+            input = gson.fromJson(root, jsonType);
         } else if (isJsonContent && !isReadOnly()) {
 //           process multiple row data
             @SuppressWarnings("unchecked")
@@ -1335,14 +1339,13 @@ public class RequestHandler {
      * Searches for relations between tables and removes related from include
      * list. Feeds collectIds with exported primary keys
      *
-     * @param tableMeta table columns metadata map
+     * @param tableMeta  table columns metadata map
      * @param collectIds map with sets of collected ids
-     * @throws SQLException
      */
     private void findTableRelations(Map<String, TableMeta> tableMeta, Map<String, Set<Object>> collectIds)
             throws ClassNotFoundException {
         if (!includeTables.isEmpty()) {
-            for (Iterator<String> iterator = includeTables.iterator(); iterator.hasNext();) {
+            for (Iterator<String> iterator = includeTables.iterator(); iterator.hasNext(); ) {
                 String includeTable = iterator.next();
                 TableMeta cTable = tableMeta.get(includeTable);
                 TableMeta topTable = tableMeta.get(table);
@@ -1409,7 +1412,7 @@ public class RequestHandler {
     }
 
     private void streamRecords(PrintWriter writer, List<String> columnsList, Map<String, Set<Object>> collectIds,
-            ResultSet rs, Integer resultCount, TableMeta tableMeta) throws SQLException {
+                               ResultSet rs, Integer resultCount, TableMeta tableMeta) throws SQLException {
         String relations = tableMeta.getRelationsJson();
         writer.write(String.format("\"%s\":{%s\"columns\":%s,\"records\":[", tableMeta.getName(),
                 relations,
@@ -1452,7 +1455,7 @@ public class RequestHandler {
      * Returns map that contains metadata about every table's primary and
      * foreign keys
      *
-     * @return
+     * @return meta map
      * @throws SQLException
      */
     private Map<String, TableMeta> getTableMetaMap() throws SQLException {
@@ -1463,6 +1466,7 @@ public class RequestHandler {
         tablesMap = new LinkedHashMap<>();
 
         DatabaseMetaData md = link.getMetaData();
+        quoteString = md.getIdentifierQuoteString();
         String schemaPattern = getCurrentSchema();
 
         try (ResultSet tables = md.getTables(databaseName, schemaPattern,
@@ -1562,7 +1566,7 @@ public class RequestHandler {
         List<Object> result = new ArrayList<>();
         try (ResultSet rs = statement.getGeneratedKeys()) {
             while (rs.next()) {
-                result.add(rs.getInt(1));
+                result.add(rs.getObject(1));
             }
         }
         return result;
@@ -1581,18 +1585,18 @@ public class RequestHandler {
         }
         final List<String> columnNames = new ArrayList<>();
         for (String column : input.keySet()) {
-            columnNames.add(column);
+            columnNames.add(String.format("%s%s%s", quoteString, column, quoteString));
         }
         if (isCreateAction()) {
             sql.openParen().FIELD(columnNames.toArray(new String[columnNames.size()])).closeParen();
         } else {
             sql.SET();
         }
-        Map<String, Object> values = processRow(input, typeMap);
+        Map<String, Object> rowMap = processRow(input, typeMap);
         if (isCreateAction()) {
-            sql.VALUES(values.values().toArray(new Object[values.size()]));
+            sql.VALUES(rowMap.values().toArray(new Object[rowMap.size()]));
         } else {
-            final Iterator<Map.Entry<String, Object>> it = values.entrySet().iterator();
+            final Iterator<Map.Entry<String, Object>> it = rowMap.entrySet().iterator();
             while (it.hasNext()) {
                 final Map.Entry<String, Object> entry = it.next();
                 if (action == INCREMENT) {

@@ -29,7 +29,13 @@ DROP TABLE IF EXISTS events CASCADE;
 DROP VIEW IF EXISTS tag_usage;
 DROP TABLE IF EXISTS products CASCADE;
 DROP TABLE IF EXISTS barcodes CASCADE;
+DROP TABLE IF EXISTS PARAMETERS;
 
+CREATE TABLE PARAMETERS (
+    key varchar(255) NOT NULL,
+    value text,
+    PRIMARY KEY (key)
+);
 --
 -- Enables the Postgis extension
 --
