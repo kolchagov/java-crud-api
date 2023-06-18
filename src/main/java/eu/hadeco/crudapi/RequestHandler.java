@@ -34,7 +34,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -125,13 +124,16 @@ public class RequestHandler {
         isJsonContent = contentType != null && contentType.toLowerCase().startsWith("application/json");
         if (isJsonContent) {
             try {
-                StringBuilder sb = new StringBuilder();
-                BufferedReader reader = req.getReader();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line.trim());
-                }
-                this.root = JsonParser.parseString(sb.toString());
+                //For gson < 2.8.5
+                this.root = (new JsonParser()).parse(req.getReader());
+                //For gson 2.9+
+//                StringBuilder sb = new StringBuilder();
+//                BufferedReader reader = req.getReader();
+//                String line;
+//                while ((line = reader.readLine()) != null) {
+//                    sb.append(line.trim());
+//                }
+//                this.root = JsonParser.parseString(sb.toString());
             } catch (JsonParseException e) {
                 throw new ClassNotFoundException("input");
             }
