@@ -791,6 +791,7 @@ public class RequestHandler {
                 break;
             case "CHARACTER":
             case "TEXT":
+            case "MEDIUMTEXT":
             case "VARCHAR":
             case "VARCHAR2":
             case "NVARCHAR":
